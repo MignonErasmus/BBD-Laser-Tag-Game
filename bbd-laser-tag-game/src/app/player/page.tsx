@@ -16,7 +16,9 @@ export default function Player() {
   const [gameID, setGameID] = useState("");
 
   useEffect(() => {
-    socket = io("http://localhost:4000");
+    // ? 'http://localhost:4000'
+    // : process.env.NEXT_PUBLIC_BACKEND_URL;
+    socket = io(process.env.NEXT_PUBLIC_BACKEND_URL);
 
     socket.on("game_started", () => setGameStarted(true));
     socket.on("players_update", (data: PlayerInfo[]) => setPlayers(data));

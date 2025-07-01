@@ -11,7 +11,9 @@ export default function Dashboard() {
   const [gameStarted, setGameStarted] = useState(false);
 
   useEffect(() => {
-    socket = io("http://localhost:4000");
+    // ? 'http://localhost:4000'
+    // : process.env.NEXT_PUBLIC_BACKEND_URL;
+    socket = io(process.env.NEXT_PUBLIC_BACKEND_URL);
 
     socket.on("game_created", (id: string) => {
       setGameID(id);
