@@ -7,7 +7,7 @@ let socket: Socket;
 
 export default function Player() {
   const [inputGameID, setInputGameID] = useState("");
-  const [playerName, setPlayerName] = useState("");
+  // const [playerName, setPlayerName] = useState("");
   const [joined, setJoined] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [players, setPlayers] = useState<PlayerInfo[]>([]);
@@ -33,11 +33,11 @@ export default function Player() {
   }, []);
 
   const joinGame = () => {
-    if (inputGameID && playerName) {
+    if (inputGameID /*&& playerName*/) {
       setGameID(inputGameID.trim());
       socket.emit("join_game", {
         gameID: inputGameID.trim(),
-        name: playerName.trim(),
+        // name: playerName.trim(),
       });
       setJoined(true);
     } else {
@@ -72,7 +72,7 @@ export default function Player() {
           }}
           aria-label="Join game form"
         >
-          <label htmlFor="playerName">Name:</label>
+          {/* <label htmlFor="playerName">Name:</label>
           <input
             id="playerName"
             type="text"
@@ -81,7 +81,7 @@ export default function Player() {
             onChange={(e) => setPlayerName(e.target.value)}
             required
             autoComplete="off"
-          />
+          /> */}
 
           <label htmlFor="gameID">Game ID:</label>
           <input
@@ -110,7 +110,7 @@ export default function Player() {
     <main>
       <header>
         <h1>Laser Tag Game</h1>
-        <p>Welcome, {playerName}!</p>
+        {/* <p>Welcome, {playerName}!</p> */}
         {reloading && <p>🔄 Reloading...</p>}
       </header>
 
