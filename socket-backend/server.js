@@ -47,7 +47,6 @@ io.on("connection", (socket) => {
       socket.emit("error", "Game not found.");
     }
   });
-  
 
   socket.on("join_game", ({ gameID/*, name */}) => {
     const game = games[gameID];
@@ -98,6 +97,7 @@ io.on("connection", (socket) => {
     socket.join(gameID);
 
     io.to(gameID).emit("players_update", game.players);
+    socket.emit("joined_successfully", { name: assignedName });
   });
 
   socket.on("start_game", (gameID) => {
