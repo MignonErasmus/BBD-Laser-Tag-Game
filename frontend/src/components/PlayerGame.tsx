@@ -1,8 +1,6 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ArrowUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -13,21 +11,50 @@ interface PlayerGameProps {
 
 export const PlayerGame = ({ playerName, gameCode }: PlayerGameProps) => {
   const navigate = useNavigate();
+
+  // Camera setup
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [error, setError] = useState<string | null>(null);
+
   const [health, setHealth] = useState(3);
   const [kills, setKills] = useState(0);
   const [isEliminated, setIsEliminated] = useState(false);
   const [lastShot, setLastShot] = useState(0);
   const [gameTime, setGameTime] = useState(0);
 
+  /// ***** useEffect *****
   useEffect(() => {
+    // 🎥 Camera Access
+    const startCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" }, /// user back camera of phone
+          audio: false, // audio off
+        });
+
+        // play current
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+        }
+      } catch (err: any) {
+        console.error("Camera error:", err);
+        setError(err.message || "Unable to access camera");
+      }
+    };
+
+    /// start camera
+    startCamera();
+
+    // 🕑 Game Timer
     const timer = setInterval(() => {
-      setGameTime(prev => prev + 1);
+      setGameTime((prev) => prev + 1);
     }, 1000);
 
-    // Simulate taking damage occasionally
+    // 🩸 Damage Simulator (testing only)
     const damageSimulator = setInterval(() => {
-      if (Math.random() < 0.2 && health > 0) { // 20% chance every 5 seconds
-        setHealth(prev => {
+      if (Math.random() < 0.2 && health > 0) {
+        setHealth((prev) => {
           const newHealth = prev - 1;
           if (newHealth <= 0) {
             setIsEliminated(true);
@@ -37,23 +64,28 @@ export const PlayerGame = ({ playerName, gameCode }: PlayerGameProps) => {
       }
     }, 5000);
 
+    // 🎯 Cleanup
     return () => {
       clearInterval(timer);
       clearInterval(damageSimulator);
+
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach((track) => track.stop());
+      }
     };
   }, [health]);
 
   const handleShoot = () => {
     if (isEliminated) return;
-    
+
     const now = Date.now();
-    if (now - lastShot < 1000) return; // 1 second cooldown
-    
+    if (now - lastShot < 1000) return;
+
     setLastShot(now);
-    
-    // Simulate hit chance
-    if (Math.random() < 0.6) { // 60% hit chance
-      setKills(prev => prev + 1);
+
+    if (Math.random() < 0.6) {
+      setKills((prev) => prev + 1);
       console.log(`${playerName} scored a kill!`);
     }
   };
@@ -85,6 +117,17 @@ export const PlayerGame = ({ playerName, gameCode }: PlayerGameProps) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-slate-900 to-cyan-900 relative overflow-hidden">
+      {/* 🔴 Hidden Camera Video Feed */}
+      {!error && (
+        <video
+          ref={videoRef}
+          className="absolute inset-0 w-full h-full object-cover opacity-100"  // Remember to set opacity here
+          autoPlay
+          playsInline
+          muted
+        />
+      )}
+
       {/* Top UI Bar */}
       <div className="absolute top-0 left-0 right-0 z-10 flex justify-between items-center p-4">
         <div className="flex items-center space-x-4">
@@ -104,9 +147,7 @@ export const PlayerGame = ({ playerName, gameCode }: PlayerGameProps) => {
             {Array.from({ length: 3 }).map((_, i) => (
               <span
                 key={i}
-                className={`text-2xl ${
-                  i < health ? 'text-red-500' : 'text-slate-600'
-                }`}
+                className={`text-2xl ${i < health ? 'text-red-500' : 'text-slate-600'}`}
               >
                 ♥
               </span>
@@ -121,21 +162,16 @@ export const PlayerGame = ({ playerName, gameCode }: PlayerGameProps) => {
 
       {/* Crosshair Targeting System */}
       <div className="absolute inset-0 flex items-center justify-center">
-        {/* Vertical line */}
         <div className="absolute w-0.5 h-full bg-gradient-to-b from-transparent via-cyan-400 to-transparent opacity-60"></div>
-        
-        {/* Horizontal line */}
         <div className="absolute h-0.5 w-full bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-60"></div>
-        
-        {/* Center crosshair */}
+
         <div className="relative">
           <div className="w-32 h-32 border-2 border-cyan-400 rounded-full flex items-center justify-center">
             <div className="w-4 h-4 bg-cyan-400 rounded-full relative">
               <div className="absolute inset-0 bg-cyan-400 rounded-full animate-ping"></div>
             </div>
           </div>
-          
-          {/* Scanner text */}
+
           <div className="absolute top-full mt-4 left-1/2 transform -translate-x-1/2 text-center">
             <div className="text-cyan-400 font-semibold">Camera Scanner Active</div>
             <div className="text-slate-400 text-sm">Point at targets to scan</div>
