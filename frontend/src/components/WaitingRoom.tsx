@@ -1,54 +1,89 @@
 
 import { useState, useEffect } from "react";
+// import { io, Socket } from "socket.io-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
+import { getSocket } from "@/socket";
+
+// const socket = getSocket();
+
 interface Player {
   id: string;
   name: string;
-  health: number;
+  lives: number;
   kills: number;
 }
 
 interface WaitingRoomProps {
   gameCode: string;
-  players: Player[];
+  // players: Player[];
   onStartGame: () => void;
 }
 
-export const WaitingRoom = ({ gameCode, players, onStartGame }: WaitingRoomProps) => {
-  const [currentPlayers, setCurrentPlayers] = useState<Player[]>([]);
+// let socket: Socket;
 
-  // Simulate players joining
+export const WaitingRoom = ({ gameCode, onStartGame }: WaitingRoomProps) => {
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [gameStarted, setGameStarted] = useState(false);
+
   useEffect(() => {
-    const playerNames = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot'];
-    let playerCount = 0;
+    const socket = getSocket();
 
-    const addPlayer = () => {
-      if (playerCount < playerNames.length) {
-        const newPlayer: Player = {
-          id: `player-${playerCount + 1}`,
-          name: playerNames[playerCount],
-          health: 3,
-          kills: 0
-        };
-        
-        setCurrentPlayers(prev => [...prev, newPlayer]);
-        playerCount++;
-        
-        if (playerCount < 4) { // Add up to 4 players automatically
-          setTimeout(addPlayer, Math.random() * 3000 + 2000);
-        }
-      }
+    // Join the specific game room
+    socket.emit("watch_game", gameCode);
+
+    // Listen for player updates
+    socket.on("players_update", (updatedPlayers: Player[]) => {
+      console.log("Players updated:", updatedPlayers)
+      setPlayers(updatedPlayers);
+    });
+
+    // Game started event
+    socket.on("game_started", () => {
+      setGameStarted(true);
+      onStartGame();
+    });
+
+    socket.on("error", (msg: string) => {
+      alert(msg);
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.warn("Client disconnected:", reason);
+    });
+
+    return () => {
+      // socket.disconnect();
+      socket.off("players_update");
+      socket.off("game_started");
+      socket.off("error");
+      socket.off("disconnect");
     };
+  }, [gameCode, onStartGame]);
 
-    // Start adding players after a short delay
-    setTimeout(addPlayer, 1000);
-  }, []);
+  const minPlayersReached = players.length >= 4;
 
-  const minPlayersReached = currentPlayers.length >= 2;
+  // const handleStartGame = () => {
+  //   if (minPlayersReached) {
+  //     socket.emit("start_game", gameCode);
+  //   } else {
+  //     alert("Need at least 4 players to start the game.");
+  //   }
+  // };
+
+  const handleStartGame = () => {
+    if (minPlayersReached) {
+      const socket = getSocket();
+      socket.emit("start_game", gameCode);
+      onStartGame(); // Notify parent if needed
+    } else {
+      alert("Need at least 4 players to start the game.");
+    }
+  };
+  
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -67,13 +102,13 @@ export const WaitingRoom = ({ gameCode, players, onStartGame }: WaitingRoomProps
         <CardContent>
           <div className="text-center mb-6">
             <p className="text-slate-300">
-              <span className="text-white font-semibold">{currentPlayers.length}</span> players joined
+              <span className="text-white font-semibold">{players.length}</span> players joined
             </p>
-            <p className="text-slate-400 text-sm">Minimum 2 players required to start</p>
+            <p className="text-slate-400 text-sm">Minimum 4 players required to start</p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            {currentPlayers.map((player) => (
+            {players.map((player) => (
               <Card key={player.id} className="bg-slate-700/50 border-slate-600">
                 <CardContent className="p-4 text-center">
                   <Avatar className="mx-auto mb-2 bg-gradient-to-r from-cyan-400 to-purple-400">
@@ -90,7 +125,7 @@ export const WaitingRoom = ({ gameCode, players, onStartGame }: WaitingRoomProps
             ))}
             
             {/* Empty slots */}
-            {Array.from({ length: Math.max(0, 4 - currentPlayers.length) }).map((_, index) => (
+            {Array.from({ length: Math.max(0, 10 - players.length) }).map((_, index) => (
               <Card key={`empty-${index}`} className="bg-slate-700/20 border-slate-600 border-dashed">
                 <CardContent className="p-4 text-center">
                   <div className="h-10 w-10 mx-auto mb-2 rounded-full bg-slate-600/50 flex items-center justify-center">
@@ -103,7 +138,7 @@ export const WaitingRoom = ({ gameCode, players, onStartGame }: WaitingRoomProps
           </div>
 
           <Button 
-            onClick={onStartGame}
+            onClick={handleStartGame}
             disabled={!minPlayersReached}
             className={`w-full py-3 text-lg font-semibold ${
               minPlayersReached
@@ -111,7 +146,7 @@ export const WaitingRoom = ({ gameCode, players, onStartGame }: WaitingRoomProps
                 : 'bg-slate-600 cursor-not-allowed'
             }`}
           >
-            {minPlayersReached ? 'Start Game' : `Need ${2 - currentPlayers.length} more players`}
+            {minPlayersReached ? 'Start Game' : `Need ${4 - players.length} more players`}
           </Button>
         </CardContent>
       </Card>
