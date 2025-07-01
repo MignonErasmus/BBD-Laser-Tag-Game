@@ -25,6 +25,10 @@ export default function Player() {
       setEliminated(true);
       socket.disconnect();
     });
+    socket.on("joined_successfully", ({ name, players}) => {
+      setPlayerName(name);
+    })
+
     socket.on("error", (msg: string) => alert(msg));
 
     return () => {
@@ -33,11 +37,10 @@ export default function Player() {
   }, []);
 
   const joinGame = () => {
-    if (inputGameID && playerName) {
+    if (inputGameID /*&& playerName*/) {
       setGameID(inputGameID.trim());
       socket.emit("join_game", {
         gameID: inputGameID.trim(),
-        name: playerName.trim(),
       });
       setJoined(true);
     } else {
@@ -72,16 +75,6 @@ export default function Player() {
           }}
           aria-label="Join game form"
         >
-          <label htmlFor="playerName">Name:</label>
-          <input
-            id="playerName"
-            type="text"
-            placeholder="Your name"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-            required
-            autoComplete="off"
-          />
 
           <label htmlFor="gameID">Game ID:</label>
           <input
@@ -110,7 +103,7 @@ export default function Player() {
     <main>
       <header>
         <h1>Laser Tag Game</h1>
-        <p>Welcome, {playerName}!</p>
+        <p className="text-2xl text-red-700">Welcome, {playerName}!</p>
         {reloading && <p>🔄 Reloading...</p>}
       </header>
 

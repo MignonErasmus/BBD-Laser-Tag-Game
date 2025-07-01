@@ -15,6 +15,19 @@ const io = new Server(server, {
 // Game state store
 const games = {};
 
+const availableNames = [
+  "Circle",
+  "Triangle",
+  "Square",
+  "Crescent",
+  "Heart",
+  "Arrow",
+  "Cross",
+  "Star",
+  "Parallelogram",
+  "Trapezium"
+];
+
 // Socket.IO connection handling
 io.on("connection", (socket) => {
   console.log(`Client connected: ${socket.id}`);
@@ -25,7 +38,17 @@ io.on("connection", (socket) => {
     socket.emit("game_created", gameID);
   });
 
-  socket.on("join_game", ({ gameID, name }) => {
+  socket.on("watch_game", (gameID) => {
+    const game = games[gameID];
+    if (game) {
+      socket.join(gameID); // just join room, no player added
+      socket.emit("players_update", game.players);
+    } else {
+      socket.emit("error", "Game not found.");
+    }
+  });
+
+  socket.on("join_game", ({ gameID/*, name */}) => {
     const game = games[gameID];
 
     if (!game) {
@@ -45,10 +68,25 @@ io.on("connection", (socket) => {
 
     if (game.players.find((p) => p.id === socket.id)) return;
 
+    let assignedName = null;
+    game.assignedNames ??= [];
+
+    const unassignedNames = availableNames.filter(
+      (name) => !game.assignedNames.includes(name)
+    );
+
+    if (unassignedNames.length > 0) {
+      assignedName = unassignedNames[0]; // Take the first available name
+      game.assignedNames.push(assignedName);
+    } else {
+      socket.emit("error", "No available names. Game cannot accept more players with unique names.");
+      return;
+    }
+
     const newPlayer = {
       id: socket.id,
-      name,
-      lives: 5,
+      name: assignedName,
+      lives: 3,
       kills: 0,
       reloading: false,
     };
@@ -57,6 +95,7 @@ io.on("connection", (socket) => {
     socket.join(gameID);
 
     io.to(gameID).emit("players_update", game.players);
+    socket.emit("joined_successfully", { name: assignedName });
   });
 
   socket.on("start_game", (gameID) => {

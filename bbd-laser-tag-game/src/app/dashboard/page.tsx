@@ -15,7 +15,7 @@ export default function Dashboard() {
 
     socket.on("game_created", (id: string) => {
       setGameID(id);
-      socket.emit("join_game", { gameID: id, name: "Dashboard" });
+      socket.emit("watch_game", id);
     });
 
     socket.on("players_update", (updatedPlayers: PlayerInfo[]) => {
@@ -75,7 +75,8 @@ export default function Dashboard() {
           {!gameStarted ? (
             <button
               onClick={startGame}
-              disabled={players.length < 4}
+              className="bg-blue-900"
+              disabled={players.length < 4 || players.length > 10}
               title={players.length < 4 ? "Need at least 4 players" : ""}
             >
               Start Game
