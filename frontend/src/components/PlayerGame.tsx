@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+// #TODO: NEED TO REMOVE THE simulation code 
 // 🧐 Simple interface for testing
 interface PlayerGameProps {
   playerName: string;

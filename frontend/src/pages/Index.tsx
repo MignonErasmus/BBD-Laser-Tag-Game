@@ -11,7 +11,7 @@ const Index = () => {
     <div 
       className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden"
       style={{
-        backgroundImage: 'url(/lovable-uploads/b103d67c-fda0-4f10-8a49-f72941457549.png)',
+        backgroundImage: 'url(./public/images/blackstar.jpg)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat'

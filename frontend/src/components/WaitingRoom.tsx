@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
+// #TODO remove simulation code
+// 🧐  Simple interface for testing
 interface Player {
   id: string;
   name: string;
@@ -12,6 +14,7 @@ interface Player {
   kills: number;
 }
 
+//🧐Simple interface for testing
 interface WaitingRoomProps {
   gameCode: string;
   players: Player[];
@@ -21,7 +24,7 @@ interface WaitingRoomProps {
 export const WaitingRoom = ({ gameCode, players, onStartGame }: WaitingRoomProps) => {
   const [currentPlayers, setCurrentPlayers] = useState<Player[]>([]);
 
-  // Simulate players joining
+  // 🧐 Simulate players joining
   useEffect(() => {
     const playerNames = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot'];
     let playerCount = 0;
@@ -44,7 +47,7 @@ export const WaitingRoom = ({ gameCode, players, onStartGame }: WaitingRoomProps
       }
     };
 
-    // Start adding players after a short delay
+    // 🧐 Start adding players after a short delay
     setTimeout(addPlayer, 1000);
   }, []);
 

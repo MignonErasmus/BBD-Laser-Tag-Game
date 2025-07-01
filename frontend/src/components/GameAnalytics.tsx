@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+// #TODO: Need to remove the simulation code
+/// 🧐 Simple interfaces for simulating a game
 interface Player {
   id: string;
   name: string;
@@ -38,7 +40,7 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
     "Player_003 eliminated Player_007"
   ]);
 
-  // Simulate game activity
+  // 🧐 Simulate game activity
   useEffect(() => {
     const gameTimer = setInterval(() => {
       setGameTime(prev => prev + 1);
@@ -78,6 +80,7 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
     return b.kills - a.kills;
   });
 
+  // variables to keep track of important data
   const totalKills = players.reduce((sum, player) => sum + player.kills, 0);
   const activePlayers = players.filter(player => player.health > 0).length;
   const eliminatedPlayers = players.filter(player => player.health === 0).length;

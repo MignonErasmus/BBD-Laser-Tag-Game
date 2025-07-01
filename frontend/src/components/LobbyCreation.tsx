@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 
+/// # TODO: Need to remove the simulation code
 interface LobbyCreationProps {
   onLobbyCreated: (code: string) => void;
 }
@@ -17,7 +18,7 @@ export const LobbyCreation = ({ onLobbyCreated }: LobbyCreationProps) => {
   const [isCreating, setIsCreating] = useState(false);
 
   const generateGameCode = () => {
-    // Simulate backend code generation
+    // 🧐 Simulate backend code generation
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let code = '';
     for (let i = 0; i < 6; i++) {
