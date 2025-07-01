@@ -38,6 +38,17 @@ io.on("connection", (socket) => {
     socket.emit("game_created", gameID);
   });
 
+  socket.on("watch_game", (gameID) => {
+    const game = games[gameID];
+    if (game) {
+      socket.join(gameID); // just join room, no player added
+      socket.emit("players_update", game.players);
+    } else {
+      socket.emit("error", "Game not found.");
+    }
+  });
+  
+
   socket.on("join_game", ({ gameID/*, name */}) => {
     const game = games[gameID];
 

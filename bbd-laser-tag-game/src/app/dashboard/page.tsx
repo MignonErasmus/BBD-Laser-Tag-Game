@@ -15,7 +15,8 @@ export default function Dashboard() {
 
     socket.on("game_created", (id: string) => {
       setGameID(id);
-      socket.emit("join_game", { gameID: id/*, name: "Dashboard"*/ });
+      socket.emit("watch_game", id);
+    //   socket.emit("join_game", { gameID: id/*, name: "Dashboard"*/ });
     });
 
     socket.on("players_update", (updatedPlayers: PlayerInfo[]) => {
