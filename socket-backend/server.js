@@ -68,8 +68,6 @@ io.on("connection", (socket) => {
 
     if (game.players.find((p) => p.id === socket.id)) return;
 
-
-
     let assignedName = null;
     game.assignedNames ??= [];
 
@@ -88,7 +86,7 @@ io.on("connection", (socket) => {
     const newPlayer = {
       id: socket.id,
       name: assignedName,
-      lives: 5,
+      lives: 3,
       kills: 0,
       reloading: false,
     };
