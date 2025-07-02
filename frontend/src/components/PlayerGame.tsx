@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -112,7 +111,7 @@ export const PlayerGame = ({ playerName, gameCode, markerId }: PlayerGameProps) 
 
     socket.emit("shoot", {
       gameID: gameCode,
-      markerId: currentTarget
+      targetMarkerId: currentTarget
     });
 
     setReloading(true);

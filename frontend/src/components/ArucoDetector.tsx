@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
 import { useScriptLoader } from "@/hooks/useScriptLoader";
@@ -36,13 +35,12 @@ export const ArucoDetector = ({
     if (cv.loaded && aruco.loaded && window.AR && window.AR.Detector) {
       try {
         detectorRef.current = new window.AR.Detector({
-          dictionary: 'ARUCO_MIP_36H12', // Using ARUCO_MIP_36H12 dictionary
-          minMarkerPerimeter: 0.15,
-          maxMarkerPerimeter: 0.9,
-          sizeAfterPerspectiveRemoval: 70,
+          minMarkerPerimeter: 0.15,   // Relative to image size
+          maxMarkerPerimeter: 0.9,    // Relative to image size
+          sizeAfterPerspectiveRemoval: 70, // Pixels
         });
         setIsLoaded(true);
-        console.log("Detector initialized with ARUCO_MIP_36H12 dictionary");
+        console.log("Detector initialized with default dictionary");
       } catch (err) {
         setError("Failed to initialize detector: " + (err as Error).message);
       }
@@ -60,7 +58,6 @@ export const ArucoDetector = ({
 
     const handleCanPlay = () => {
       setIsCameraReady(true);
-      console.log("Camera stream ready");
     };
 
     video.addEventListener('canplay', handleCanPlay);
@@ -82,23 +79,27 @@ export const ArucoDetector = ({
 
     if (video && context && video.readyState === 4) {
       try {
-        // Set canvas dimensions
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        // Scale down image for better performance
+        const scaledWidth = 640;
+        const scaledHeight = 480;
         
-        // Draw video frame
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // Set canvas dimensions
+        canvas.width = scaledWidth;
+        canvas.height = scaledHeight;
+        
+        // Draw video frame scaled down
+        context.drawImage(video, 0, 0, scaledWidth, scaledHeight);
         
         // Get image data
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        const imageData = context.getImageData(0, 0, scaledWidth, scaledHeight);
         
         // Detect markers
         const markers = detectorRef.current.detect(imageData);
         
         // Find marker closest to center
         if (markers.length > 0) {
-          const centerX = canvas.width / 2;
-          const centerY = canvas.height / 2;
+          const centerX = scaledWidth / 2;
+          const centerY = scaledHeight / 2;
           let closestMarker = markers[0];
           let minDistance = Infinity;
 
@@ -117,12 +118,11 @@ export const ArucoDetector = ({
           
           // Report marker if close to center
           if (minDistance < 100) {
-            console.log("Target detected:", closestMarker.id);
             onTargetDetected(closestMarker.id);
           }
         }
       } catch (err) {
-        setError("Marker detection error: " + (err as Error).message);
+        console.error("Marker detection error:", err);
       }
     }
 
@@ -131,7 +131,6 @@ export const ArucoDetector = ({
 
   useEffect(() => {
     if (isLoaded && isCameraReady) {
-      console.log("Starting marker detection");
       animationRef.current = requestAnimationFrame(detectMarkers);
     }
     

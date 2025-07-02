@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 
 export const useScriptLoader = (src: string) => {
@@ -18,12 +17,10 @@ export const useScriptLoader = (src: string) => {
     script.async = true;
     
     script.onload = () => {
-      console.log(`Script loaded: ${src}`);
       setLoaded(true);
     };
     
     script.onerror = () => {
-      console.error(`Failed to load script: ${src}`);
       setError(`Failed to load script: ${src}`);
     };
 

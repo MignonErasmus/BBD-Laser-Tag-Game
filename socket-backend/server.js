@@ -1,5 +1,4 @@
 import 'dotenv/config';
-
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
@@ -18,16 +17,8 @@ const io = new Server(server, {
 const games = {};
 
 const availableNames = [
-  "Circle",
-  "Triangle",
-  "Square",
-  "Crescent",
-  "Heart",
-  "Arrow",
-  "Cross",
-  "Star",
-  "Parallelogram",
-  "Trapezium"
+  "Circle", "Triangle", "Square", "Crescent", "Heart", 
+  "Arrow", "Cross", "Star", "Parallelogram", "Trapezium"
 ];
 
 // Socket.IO connection handling
@@ -43,14 +34,14 @@ io.on("connection", (socket) => {
   socket.on("watch_game", (gameID) => {
     const game = games[gameID];
     if (game) {
-      socket.join(gameID); // just join room, no player added
+      socket.join(gameID);
       socket.emit("players_update", game.players);
     } else {
       socket.emit("error", "Game not found.");
     }
   });
 
-  socket.on("join_game", ({ gameID/*, name */}) => {
+  socket.on("join_game", ({ gameID, markerId }) => {
     const game = games[gameID];
 
     if (!game) {
@@ -70,24 +61,44 @@ io.on("connection", (socket) => {
 
     if (game.players.find((p) => p.id === socket.id)) return;
 
+    // Validate marker ID
+    const parsedMarkerId = parseInt(markerId);
+    if (isNaN(parsedMarkerId)) {
+      socket.emit("error", "Invalid marker ID format.");
+      return;
+    }
+
+    if (parsedMarkerId < 0 || parsedMarkerId > 1024) {
+      socket.emit("error", "Marker ID must be between 0-1024.");
+      return;
+    }
+
+    // Check for duplicate marker IDs
+    if (game.players.some(p => p.markerId === parsedMarkerId)) {
+      socket.emit("error", "Marker ID already in use in this game.");
+      return;
+    }
+
+    // Assign name
     let assignedName = null;
     game.assignedNames ??= [];
 
     const unassignedNames = availableNames.filter(
-      (name) => !game.assignedNames.includes(name)
+      name => !game.assignedNames.includes(name)
     );
 
     if (unassignedNames.length > 0) {
-      assignedName = unassignedNames[0]; // Take the first available name
+      assignedName = unassignedNames[0];
       game.assignedNames.push(assignedName);
     } else {
-      socket.emit("error", "No available names. Game cannot accept more players with unique names.");
+      socket.emit("error", "No available names.");
       return;
     }
 
     const newPlayer = {
       id: socket.id,
       name: assignedName,
+      markerId: parsedMarkerId,
       lives: 3,
       kills: 0,
       reloading: false,
@@ -97,7 +108,10 @@ io.on("connection", (socket) => {
     socket.join(gameID);
 
     io.to(gameID).emit("players_update", game.players);
-    socket.emit("joined_successfully", { name: assignedName });
+    socket.emit("joined_successfully", { 
+      name: assignedName, 
+      markerId: parsedMarkerId 
+    });
   });
 
   socket.on("start_game", (gameID) => {
@@ -122,12 +136,12 @@ io.on("connection", (socket) => {
     io.to(gameID).emit("game_started");
   });
 
-  socket.on("shoot", ({ gameID, targetID }) => {
+  socket.on("shoot", ({ gameID, targetMarkerId }) => {
     const game = games[gameID];
     if (!game || !game.started) return;
 
     const shooter = game.players.find((p) => p.id === socket.id);
-    const target = game.players.find((p) => p.id === targetID);
+    const target = game.players.find((p) => p.markerId === targetMarkerId);
 
     if (!shooter) {
       socket.emit("error", "Shooter not found.");
