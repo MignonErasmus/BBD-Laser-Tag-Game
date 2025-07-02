@@ -31,6 +31,10 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
   const [firstBloodPlayerId, setFirstBloodPlayerId] = useState<string | null>(null);
   const prevKillsRef = useRef<Map<string, number>>(new Map());
   const hasFirstBloodBeenSet = useRef(false);
+  // states for the first player eliminated
+  const [firstEliminatedPlayerId, setFirstEliminatedPlayerId] = useState<string | null>(null);
+  const hasFirstEliminatedBeenSet = useRef(false);
+  const prevLivesRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     const alivePlayers = players.filter(p => p.lives > 0).length;
@@ -69,7 +73,7 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
         return b.kills - a.kills;
       });
 
-      // ✅ Only detect first blood ONCE
+      // Only detect first blood ONCE
       if (!hasFirstBloodBeenSet.current) {
         // Find player who had a kill increase
         for (const player of data) {
@@ -82,10 +86,29 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
         }
       }
 
-      // ✅ Always update the reference map with latest kills
+      // Always update the reference map with latest kills
       for (const player of data) {
         prevKillsRef.current.set(player.id, player.kills);
       }
+
+       //  Detect first eliminated ONCE
+        if (!hasFirstEliminatedBeenSet.current) {
+          for (const player of data) {
+            const prevLives = prevLivesRef.current.get(player.id) ?? player.lives;
+            if (prevLives > 0 && player.lives === 0) {
+              setFirstEliminatedPlayerId(player.id);
+              hasFirstEliminatedBeenSet.current = true;
+              break;
+            }
+          }
+        }
+
+        for (const player of data) {
+          prevKillsRef.current.set(player.id, player.kills);
+          prevLivesRef.current.set(player.id, player.lives); // lives reference
+        }
+
+
 
       setPlayers(sorted);
     });
@@ -179,6 +202,11 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
                           {/* badge for first blood */}
                           {p.id === firstBloodPlayerId && (
                             <Badge className="bg-purple-700 text-white text-xs ml-2">Firstblood</Badge>
+                          )}
+
+                          {/* badge for first eliminated player */}
+                          {p.id === firstEliminatedPlayerId && (
+                            <Badge className="bg-orange-700 text-white text-xs ml-2">Demo Dummy</Badge>
                           )}
                         </p>
                         <div className="flex space-x-1 mt-1">
