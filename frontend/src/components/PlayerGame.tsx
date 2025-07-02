@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { getSocket } from "@/socket";
-import { ArrowUp } from "lucide-react";
 import { ArucoDetector } from "@/components/ArucoDetector";
 
 interface Player {
@@ -150,54 +149,38 @@ export const PlayerGame = ({ playerName, gameCode, markerId }: PlayerGameProps) 
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-slate-900 to-cyan-900 relative overflow-hidden">
-      <div className="absolute top-0 left-0 right-0 z-10 flex justify-between items-center p-4">
-        <div className="flex items-center space-x-4">
-          <Button 
-            variant="outline" 
-            onClick={handleBackToHome} 
-            className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
-          >
-            <ArrowUp className="h-4 w-4 mr-2" />
-            Back to Home
-          </Button>
+    <div className="min-h-[calc(100vh-7rem)] bg-gradient-to-br from-blue-900 via-slate-900 to-cyan-900 relative overflow-hidden">
+      <div className="absolute top-0 left-0 right-0 z-10 flex flex-col sm:flex-row justify-between items-center p-4 gap-y-2 sm:gap-y-0">
+        <div className="flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2">
           <div className="text-cyan-400 font-bold text-lg">{playerName}</div>
           <div className="text-purple-400">Marker ID: {markerId}</div>
         </div>
-
-        <div className="flex items-center space-x-6">
+  
+        <div className="flex flex-wrap justify-center sm:justify-end items-center space-x-2 sm:space-x-4 mt-2 sm:mt-0">
           <div className="flex space-x-1">
             {Array.from({ length: 5 }).map((_, i) => (
               <span key={i} className={`text-2xl ${i < currentPlayer.lives ? 'text-red-500' : 'text-slate-600'}`}>♥</span>
             ))}
           </div>
-          <div className="bg-slate-900/80 px-4 py-2 rounded border border-cyan-400">
-            <span className="text-yellow-400 font-bold text-xl">{currentPlayer.kills}</span>
+          <div className="bg-slate-900/80 px-3 py-1 sm:px-4 sm:py-2 rounded border border-cyan-400 text-center">
+            <span className="text-yellow-400 font-bold text-lg sm:text-xl">{currentPlayer.kills}</span>
             <div className="text-xs text-cyan-400">KILLS</div>
           </div>
-          <div className="bg-slate-900/80 px-4 py-2 rounded border border-purple-400">
-            <span className="text-purple-400 font-bold text-xl">
+          <div className="bg-slate-900/80 px-3 py-1 sm:px-4 sm:py-2 rounded border border-purple-400 text-center">
+            <span className="text-purple-400 font-bold text-lg sm:text-xl">
               {currentTarget || "--"}
             </span>
             <div className="text-xs text-purple-400">TARGET</div>
           </div>
         </div>
       </div>
-
+  
       {isAiming ? (
         <div className="absolute inset-0">
-          <ArucoDetector 
-            onTargetDetected={handleTargetDetected} 
+          <ArucoDetector
+            onTargetDetected={handleTargetDetected}
             onReadyChange={setIsScannerReady}
           />
-          {currentTarget && (
-            <div className="absolute top-20 left-0 right-0 text-center z-20">
-              <div className="inline-block bg-slate-800/80 px-4 py-2 rounded-lg">
-                <span className="text-green-400 font-bold">Target Locked!</span>
-                <span className="text-white ml-2">Marker ID: {currentTarget}</span>
-              </div>
-            </div>
-          )}
         </div>
       ) : (
         <div className="absolute inset-0 flex items-center justify-center">
@@ -216,23 +199,23 @@ export const PlayerGame = ({ playerName, gameCode, markerId }: PlayerGameProps) 
           </div>
         </div>
       )}
-
+  
       <button
         onClick={toggleAimingMode}
-        className={`absolute top-20 right-4 px-4 py-2 rounded-lg z-20 ${
+        className={`text-sm absolute top-4 right-4 px-2 py-2 rounded-lg z-20 ${
           isAiming ? "bg-red-500 text-white" : "bg-cyan-500 text-white"
-        }`}
+        } sm:top-20`}
       >
         {isAiming ? "Exit Scanner" : "Activate Scanner"}
       </button>
-
+  
       <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10">
         <Button
           onClick={handleShoot}
           disabled={reloading || !currentTarget || !isScannerReady}
           className={`w-20 h-20 rounded-full border-4 shadow-lg transition-transform ${
-            reloading 
-              ? "bg-gray-500 border-gray-300 shadow-gray-500/50" 
+            reloading
+              ? "bg-gray-500 border-gray-300 shadow-gray-500/50"
               : currentTarget && isScannerReady
                 ? "bg-red-500 border-red-300 shadow-red-500/50 hover:scale-105"
                 : "bg-orange-500 border-orange-300 shadow-orange-500/50"
@@ -250,12 +233,12 @@ export const PlayerGame = ({ playerName, gameCode, markerId }: PlayerGameProps) 
           </div>
         </Button>
       </div>
-
+  
       <div className="absolute bottom-4 left-4 bg-slate-800/80 p-2 rounded-lg text-xs text-slate-400">
         <p>Scanner: {isScannerReady ? "Ready" : "Loading"}</p>
         <p>Target: {currentTarget || "None"}</p>
         <p>Reloading: {reloading ? "Yes" : "No"}</p>
       </div>
     </div>
-  );
+  ); 
 };

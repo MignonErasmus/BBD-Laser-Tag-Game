@@ -18,6 +18,7 @@ interface Player {
   name: string;
   lives: number;
   kills: number;
+  markerId: number;
 }
 
 export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
@@ -58,7 +59,12 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
     socket.emit("watch_game", gameCode);
 
     socket.on("players_update", (data: Player[]) => {
-      setPlayers(data);
+      const sorted = [...data].sort((a, b) => {
+        if (a.lives === 0 && b.lives > 0) return 1;
+        if (b.lives === 0 && a.lives > 0) return -1;
+        return b.kills - a.kills;
+      });
+      setPlayers(sorted);
     });
 
     socket.on("player_action", (activity: string) => {
@@ -77,11 +83,11 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
     };
   }, [gameCode]);
 
-  const sorted = [...players].sort((a, b) => {
-    if (a.lives === 0 && b.lives > 0) return 1;
-    if (b.lives === 0 && a.lives > 0) return -1;
-    return b.kills - a.kills;
-  });
+  // const sorted = [...players].sort((a, b) => {
+  //   if (a.lives === 0 && b.lives > 0) return 1;
+  //   if (b.lives === 0 && a.lives > 0) return -1;
+  //   return b.kills - a.kills;
+  // });
 
   const totalKills = players.reduce((sum, p) => sum + p.kills, 0);
   const activeCount = players.filter(p => p.lives > 0).length;
@@ -128,14 +134,14 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader><CardTitle className="text-white flex items-center">🏆 Leaderboard</CardTitle></CardHeader>
               <CardContent className="space-y-3">
-                {sorted.map((p, i) => (
+                {players.map((p, i) => (
                   <div key={p.id} className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <Badge className={`px-2 py-1 text-sm ${i===0?'bg-yellow-500':i===1?'bg-gray-400':i===2?'bg-amber-600':'bg-slate-600'} text-white`}>
                         #{i+1}
                       </Badge>
                       <div>
-                        <p className="text-white font-medium">{p.name}</p>
+                        <p className="text-white font-medium">{p.name} #{p.markerId}</p>
                         <div className="flex space-x-1 mt-1">
                           <span className="text-red-400">♥ {p.lives}</span>
                           <span className="text-cyan-400 ml-2">{p.kills} kills</span>
@@ -146,26 +152,27 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
                 ))}
               </CardContent>
             </Card>
+          </div>
 
-            {/* Recent Activity */}
-            <Card className="bg-slate-800/50 border-slate-700">
+          {/* Recent Activity */}
+          <div className="lg:col-span-2">
+            <Card className="bg-slate-800/50 border-slate-700 h-full">
               <CardHeader><CardTitle className="text-white flex items-center">📊 Recent Activity</CardTitle></CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {recentActivity.map((a, i) => (
-                    <div key={i} className="text-slate-300 text-sm flex justify-between">
-                      <span>{a}</span>
-                      {/* <span className="text-slate-500">just now</span> */}
-                    </div>
-                  ))}
+                  <div className="space-y-2">
+                    {recentActivity.map((a, i) => (
+                      <div key={i} className="text-slate-300 text-sm flex justify-between">
+                        <span>{a}</span>
+                      </div>
+                    ))}
                 </div>
               </CardContent>
             </Card>
           </div>
+        </div>
 
-          {/* Player Cameras */}
-          <div className="lg:col-span-2">
-            <Card className="bg-slate-800/50 border-slate-700 h-full">
+        <div className="mt-6">
+            <Card className="bg-slate-800/50 border-slate-700 ">
               <CardHeader><CardTitle className="text-white flex items-center"><Camera className="h-5 w-5 mr-2" />Player Cameras</CardTitle></CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
@@ -189,7 +196,6 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
                 </div>
               </CardContent>
             </Card>
-          </div>
         </div>
       </div>
     </div>
