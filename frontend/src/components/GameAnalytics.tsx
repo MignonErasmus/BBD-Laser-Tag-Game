@@ -1,13 +1,13 @@
-// Updated GameAnalytics.tsx with badges: John Wick, MVP, First Blood, Demo Dummy
 
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Camera, ArrowUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { getSocket } from "@/socket";
+import { useRef } from "react";
 
 interface GameAnalyticsProps {
   gameCode: string;
@@ -28,39 +28,34 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
   const [recentActivity, setRecentActivity] = useState<string[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [firstEliminatedId, setFirstEliminatedId] = useState<string | null>(null);
-  const [firstBloodId, setFirstBloodId] = useState<string | null>(null);
-  const [mvpId, setMvpId] = useState<string | null>(null);
-
   useEffect(() => {
     const alivePlayers = players.filter(p => p.lives > 0).length;
-
+  
+    // Start timer if 2+ players alive and timer isn't already running
     if (alivePlayers > 1 && !timerRef.current) {
       timerRef.current = setInterval(() => {
         setGameTime(prev => prev + 1);
       }, 1000);
     }
-
+  
+    // Stop timer if 1 or fewer players left
     if (alivePlayers <= 1 && timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
-
-      if (alivePlayers === 1 && !mvpId) {
-        const winner = players.find(p => p.lives > 0);
-        if (winner) setMvpId(winner.id);
-      }
     }
-
+  
     return () => {
+      // Clean up when component unmounts
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
     };
-  }, [players, mvpId]);
+  }, [players]);
 
   useEffect(() => {
     const socket = getSocket();
+
     socket.emit("watch_game", gameCode);
 
     socket.on("players_update", (data: Player[]) => {
@@ -69,23 +64,11 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
         if (b.lives === 0 && a.lives > 0) return -1;
         return b.kills - a.kills;
       });
-
-      // First kill (First Blood)
-      if (!firstBloodId) {
-        const killer = sorted.find(p => p.kills > 0 && !players.find(prev => prev.id === p.id && prev.kills > 0));
-        if (killer) setFirstBloodId(killer.id);
-      }
-
-      // First death (Demo Dummy)
-      if (!firstEliminatedId) {
-        const eliminated = sorted.find(p => p.lives === 0 && !players.find(prev => prev.id === p.id && prev.lives === 0));
-        if (eliminated) setFirstEliminatedId(eliminated.id);
-      }
-
       setPlayers(sorted);
     });
 
     socket.on("player_action", (activity: string) => {
+      console.log("Player action received:", activity);
       setRecentActivity((prev) => [activity, ...prev].slice(0, 10));
     });
 
@@ -98,16 +81,21 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
       socket.off("player_action");
       socket.off("game_time");
     };
-  }, [gameCode, players, firstBloodId, firstEliminatedId]);
+  }, [gameCode]);
+
+  // const sorted = [...players].sort((a, b) => {
+  //   if (a.lives === 0 && b.lives > 0) return 1;
+  //   if (b.lives === 0 && a.lives > 0) return -1;
+  //   return b.kills - a.kills;
+  // });
 
   const totalKills = players.reduce((sum, p) => sum + p.kills, 0);
   const activeCount = players.filter(p => p.lives > 0).length;
   const elimCount = players.filter(p => p.lives === 0).length;
-  const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
-
+  const formatTime = (s: number) => `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
   const maxKills = Math.max(...players.map(p => p.kills), 0);
 
-  const handleBack = () => navigate("/");
+  const handleBack = () => navigate('/');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
@@ -150,15 +138,18 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
                 {players.map((p, i) => (
                   <div key={p.id} className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
                     <div className="flex items-center space-x-3">
-                      <Badge className={`px-2 py-1 text-sm ${i === 0 ? 'bg-yellow-500' : i === 1 ? 'bg-gray-400' : i === 2 ? 'bg-amber-600' : 'bg-slate-600'} text-white`}>#{i + 1}</Badge>
+                      <Badge className={`px-2 py-1 text-sm ${i===0?'bg-yellow-500':i===1?'bg-gray-400':i===2?'bg-amber-600':'bg-slate-600'} text-white`}>
+                        #{i+1}
+                      </Badge>
                       <div>
-                        <div className="flex items-center space-x-2">
-                          <p className="text-white font-medium">{p.name} #{p.markerId}</p>
-                          {p.kills === maxKills && maxKills > 0 && <Badge className="bg-red-600 text-white text-xs">Johnwick</Badge>}
-                          {p.id === firstEliminatedId && <Badge className="bg-yellow-700 text-white text-xs">Demo Dummy</Badge>}
-                          {p.id === mvpId && <Badge className="bg-green-600 text-white text-xs">MVP</Badge>}
-                          {p.id === firstBloodId && <Badge className="bg-pink-700 text-white text-xs">First Blood</Badge>}
-                        </div>
+                        <p className="text-white font-medium">
+                          {p.name} #{p.markerId}
+
+                          {/* badge for johnwick */}
+                          {p.kills === maxKills && maxKills > 0 && (
+                            <Badge className="bg-red-700 text-white text-xs">Johnwick</Badge>
+                          )}
+                        </p>
                         <div className="flex space-x-1 mt-1">
                           <span className="text-red-400">♥ {p.lives}</span>
                           <span className="text-cyan-400 ml-2">{p.kills} kills</span>
@@ -176,12 +167,12 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
             <Card className="bg-slate-800/50 border-slate-700 h-full">
               <CardHeader><CardTitle className="text-white flex items-center">📊 Recent Activity</CardTitle></CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {recentActivity.map((a, i) => (
-                    <div key={i} className="text-slate-300 text-sm flex justify-between">
-                      <span>{a}</span>
-                    </div>
-                  ))}
+                  <div className="space-y-2">
+                    {recentActivity.map((a, i) => (
+                      <div key={i} className="text-slate-300 text-sm flex justify-between">
+                        <span>{a}</span>
+                      </div>
+                    ))}
                 </div>
               </CardContent>
             </Card>
@@ -189,35 +180,33 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
         </div>
 
         <div className="mt-6">
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader><CardTitle className="text-white flex items-center"><Camera className="h-5 w-5 mr-2" />Player Cameras</CardTitle></CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                {players.slice(0, 6).map((p) => (
-                  <div key={p.id} className="relative">
-                    <div className="aspect-video bg-slate-900 rounded-lg border border-slate-600 flex items-center justify-center relative overflow-hidden">
-                      <div className="text-center text-slate-500 text-sm">Camera View</div>
-                      <div className="absolute top-2 left-2 flex items-center space-x-1">
-                        <Badge className="bg-black/70 text-cyan-400 text-xs">{p.name}</Badge>
-                        {p.id === firstEliminatedId && <Badge className="bg-yellow-700 text-white text-xs">Demo Dummy</Badge>}
-                        {p.kills === maxKills && maxKills > 0 && <Badge className="bg-red-600 text-white text-xs">Johnwick</Badge>}
-                        {p.id === mvpId && <Badge className="bg-green-600 text-white text-xs">MVP</Badge>}
-                        {p.id === firstBloodId && <Badge className="bg-pink-700 text-white text-xs">First Blood</Badge>}
+            <Card className="bg-slate-800/50 border-slate-700 ">
+              <CardHeader><CardTitle className="text-white flex items-center"><Camera className="h-5 w-5 mr-2" />Player Cameras</CardTitle></CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  {players.slice(0, 6).map((p) => (
+                    <div key={p.id} className="relative">
+                      <div className="aspect-video bg-slate-900 rounded-lg border border-slate-600 flex items-center justify-center relative overflow-hidden">
+                        <div className="text-center text-slate-500 text-sm">Camera View</div>
+                        
+                        <div className="absolute top-2 left-2">
+                          <Badge className="bg-black/70 text-cyan-400 text-xs">{p.name}</Badge>
+                        </div>
+                        <div className="absolute top-2 right-2 flex items-center space-x-1">
+                          <span className="text-red-400 text-sm">♥ {p.lives}</span>
+                          {p.kills > 0 && <Badge className="bg-yellow-600/80 text-white text-xs">{p.kills}</Badge>}
+                        </div>
+                        {p.lives === 0 && <div className="absolute inset-0 bg-red-900/50 rounded-lg flex items-center justify-center"><Badge className="bg-red-600 text-white">ELIMINATED</Badge></div>}
+                        {p.lives > 0 && <div className="absolute bottom-2 right-2"><div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div></div>}
                       </div>
-                      <div className="absolute top-2 right-2 flex items-center space-x-1">
-                        <span className="text-red-400 text-sm">♥ {p.lives}</span>
-                        {p.kills > 0 && <Badge className="bg-yellow-600/80 text-white text-xs">{p.kills}</Badge>}
-                      </div>
-                      {p.lives === 0 && <div className="absolute inset-0 bg-red-900/50 rounded-lg flex items-center justify-center"><Badge className="bg-red-600 text-white">ELIMINATED</Badge></div>}
-                      {p.lives > 0 && <div className="absolute bottom-2 right-2"><div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div></div>}
                     </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
         </div>
       </div>
     </div>
   );
 };
+
