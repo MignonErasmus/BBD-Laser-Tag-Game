@@ -1,4 +1,4 @@
-// src/hooks/useScriptLoader.ts
+
 import { useEffect, useState } from "react";
 
 export const useScriptLoader = (src: string) => {

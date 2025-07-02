@@ -1,4 +1,4 @@
-// src/components/ArucoDetector.tsx
+
 import { useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
 import { useScriptLoader } from "@/hooks/useScriptLoader";
@@ -16,8 +16,7 @@ export const ArucoDetector = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const detectorRef = useRef<any>(null);
   const animationRef = useRef<number>(0);
-  
-  // Use direct paths
+ 
   const cv = useScriptLoader(`/libs/cv.js`);
   const aruco = useScriptLoader(`/libs/aruco.js`);
   
