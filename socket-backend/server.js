@@ -84,8 +84,8 @@ io.on("connection", (socket) => {
       return;
     }
 
-    if (parsedMarkerId < 0 || parsedMarkerId > 1024) {
-      socket.emit("error", "Marker ID must be between 0-1024.");
+    if (parsedMarkerId < 0 || parsedMarkerId > 14) {
+      socket.emit("error", "Marker ID must be between 0-14.");
       console.log(`Join error: Marker ID ${parsedMarkerId} out of range for socket ${socket.id}`);
       return;
     }
@@ -120,6 +120,7 @@ io.on("connection", (socket) => {
       markerId: parsedMarkerId,
       lives: 5,
       kills: 0,
+      points: 0,
       reloading: false,
     };
 
@@ -212,8 +213,10 @@ io.on("connection", (socket) => {
     // Apply damage
     if (target.lives > 0) {
       target.lives--;
+      shooter.points = shooter.points + 100;
       console.log(`${shooter.name} shot ${target.name}. ${target.name} has ${target.lives} lives left.`);
       io.to(gameID).emit("player_action", `🤕 ${target.name} lost a life!`);
+      io.to(gameID).emit("player_action", `💎 ${shooter.name} scored 100 points`);
 
       if (target.lives === 0) {
         shooter.kills++;
