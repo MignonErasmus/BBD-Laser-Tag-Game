@@ -140,6 +140,26 @@
       navigate('/');
     };
 
+    const lifeLostSound = new Audio('/sounds/death1.mp3');
+    lifeLostSound.playbackRate = 3.0; // Makes it twice as fast (default is 1.0)
+    // You can try 1.5, 2.0, or even 3.0 depending on how fast you want it.
+
+    const [previousLives, setPreviousLives] = useState(currentPlayer.lives);
+
+    useEffect(() => {
+      const me = players.find(p => p.name === playerName);
+      if (!me) return;
+
+      if (me.lives < previousLives) {
+        lifeLostSound.currentTime = 0;
+        lifeLostSound.play();
+      }
+
+      setPreviousLives(me.lives);
+    }, [players]);
+
+
+
     if (isEliminated) {
       return (
         <div className="min-h-screen bg-gradient-to-br from-blue-900 via-slate-900 to-cyan-900 flex items-center justify-center p-4">
