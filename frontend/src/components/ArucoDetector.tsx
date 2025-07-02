@@ -7,68 +7,128 @@ interface ArucoDetectorProps {
   onReadyChange?: (ready: boolean) => void;
 }
 
-export const ArucoDetector = ({ 
+export const ArucoDetector = ({
   onTargetDetected,
-  onReadyChange 
+  onReadyChange,
 }: ArucoDetectorProps) => {
   const webcamRef = useRef<Webcam>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const detectorRef = useRef<any>(null);
   const animationRef = useRef<number>(0);
- 
+
   const cv = useScriptLoader(`/libs/cv.js`);
   const aruco = useScriptLoader(`/libs/aruco.js`);
-  
+
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
 
-  // Report ready state to parent
+  // Logs for scripts & AR availability
   useEffect(() => {
+    console.log("cv loaded?", cv.loaded);
+    console.log("aruco loaded?", aruco.loaded);
+    console.log("cv error?", cv.error);
+    console.log("aruco error?", aruco.error);
+    console.log("window.AR after scripts load:", (window as any).AR);
+    console.log("window.AR.Detector:", (window as any).AR?.Detector);
+  }, [cv.loaded, aruco.loaded, cv.error, aruco.error]);
+
+  // Notify parent about readiness
+  useEffect(() => {
+    console.log("Ready check:", { isLoaded, isCameraReady });
+    const ready = isLoaded && isCameraReady;
     if (onReadyChange) {
-      onReadyChange(isLoaded && isCameraReady);
+      onReadyChange(ready);
+      console.log("Ready state changed:", ready);
     }
   }, [isLoaded, isCameraReady, onReadyChange]);
 
-  // Initialize detector when libraries are loaded
+  // Initialize AR detector with MIP dictionary
   useEffect(() => {
-    if (cv.loaded && aruco.loaded && window.AR && window.AR.Detector) {
-      try {
-        detectorRef.current = new window.AR.Detector({
-          minMarkerPerimeter: 0.15,   // Relative to image size
-          maxMarkerPerimeter: 0.9,    // Relative to image size
-          sizeAfterPerspectiveRemoval: 70, // Pixels
-        });
-        setIsLoaded(true);
-        console.log("Detector initialized with default dictionary");
-      } catch (err) {
-        setError("Failed to initialize detector: " + (err as Error).message);
-      }
-    } else if (cv.error || aruco.error) {
-      setError(cv.error || aruco.error);
+    if (cv.loaded && aruco.loaded) {
+      const timer = setTimeout(() => {
+        const AR = (window as any).AR;
+        if (AR?.Detector && AR?.DICTIONARIES) {
+          try {
+            detectorRef.current = new AR.Detector({
+              dictionary: AR.DICTIONARIES.ARUCO_MIP_36H12,
+              minMarkerPerimeter: 0.15,
+              maxMarkerPerimeter: 0.9,
+              sizeAfterPerspectiveRemoval: 70,
+            });
+            setIsLoaded(true);
+            console.log("Detector initialized successfully with ARUCO_MIP_36H12");
+          } catch (err) {
+            const message = "Failed to initialize detector: " + (err as Error).message;
+            setError(message);
+            console.error(message);
+          }
+        } else {
+          const message = "AR.Detector or AR.DICTIONARIES not found on window.AR";
+          setError(message);
+          console.error(message);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
     }
-  }, [cv.loaded, aruco.loaded, cv.error, aruco.error]);
+  }, [cv.loaded, aruco.loaded]);
 
-  // Handle camera stream
+  // Camera readiness detection with verbose logs
   useEffect(() => {
-    if (!webcamRef.current) return;
-    
-    const video = webcamRef.current.video;
-    if (!video) return;
+    const webcam = webcamRef.current;
+    if (!webcam) {
+      console.log("No webcam ref available yet");
+      return;
+    }
+
+    const video = webcam.video;
+    if (!video) {
+      console.log("No video element available yet");
+      return;
+    }
 
     const handleCanPlay = () => {
+      console.log("canplay event fired");
       setIsCameraReady(true);
     };
 
-    video.addEventListener('canplay', handleCanPlay);
-    
+    video.addEventListener("canplay", handleCanPlay);
+
+    if (video.readyState >= 3) {
+      console.log("video.readyState >= 3 on init");
+      setIsCameraReady(true);
+    } else {
+      let pollCount = 0;
+      const pollInterval = setInterval(() => {
+        console.log(`Polling video.readyState: ${video.readyState}`);
+        if (video.readyState >= 3) {
+          console.log("video.readyState >= 3 via polling");
+          setIsCameraReady(true);
+          clearInterval(pollInterval);
+        }
+        if (pollCount++ > 10) {
+          console.warn("Polling timeout: video.readyState never reached 3");
+          clearInterval(pollInterval);
+        }
+      }, 100);
+
+      return () => clearInterval(pollInterval);
+    }
+
     return () => {
-      if (video) video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener("canplay", handleCanPlay);
     };
   }, []);
 
+  // Detection loop with marker logging
   const detectMarkers = () => {
-    if (!isLoaded || !isCameraReady || !webcamRef.current || !canvasRef.current || !detectorRef.current) {
+    if (
+      !isLoaded ||
+      !isCameraReady ||
+      !webcamRef.current ||
+      !canvasRef.current ||
+      !detectorRef.current
+    ) {
       animationRef.current = requestAnimationFrame(detectMarkers);
       return;
     }
@@ -77,37 +137,50 @@ export const ArucoDetector = ({
     const canvas = canvasRef.current;
     const context = canvas.getContext("2d");
 
-    if (video && context && video.readyState === 4) {
+    if (video && context && video.readyState >= 3) {
       try {
-        // Scale down image for better performance
         const scaledWidth = 640;
         const scaledHeight = 480;
-        
-        // Set canvas dimensions
+
         canvas.width = scaledWidth;
         canvas.height = scaledHeight;
-        
-        // Draw video frame scaled down
+
         context.drawImage(video, 0, 0, scaledWidth, scaledHeight);
-        
-        // Get image data
         const imageData = context.getImageData(0, 0, scaledWidth, scaledHeight);
-        
-        // Detect markers
+
         const markers = detectorRef.current.detect(imageData);
-        
-        // Find marker closest to center
+        console.log("Markers detected:", markers);
+
         if (markers.length > 0) {
           const centerX = scaledWidth / 2;
           const centerY = scaledHeight / 2;
-          let closestMarker = markers[0];
+          let closestMarker = null;
           let minDistance = Infinity;
 
           for (const marker of markers) {
-            const center = marker.center;
+            let center = marker.center;
+            if (!center) {
+              const corners = marker.corners;
+              if (corners && corners.length === 4) {
+                const sum = corners.reduce(
+                  (acc: { x: number; y: number }, corner: { x: number; y: number }) => ({
+                    x: acc.x + corner.x,
+                    y: acc.y + corner.y,
+                  }),
+                  { x: 0, y: 0 }
+                );
+                center = {
+                  x: sum.x / 4,
+                  y: sum.y / 4,
+                };
+                marker.center = center;
+              } else {
+                continue;
+              }
+            }
+
             const distance = Math.sqrt(
-              Math.pow(center.x - centerX, 2) + 
-              Math.pow(center.y - centerY, 2)
+              Math.pow(center.x - centerX, 2) + Math.pow(center.y - centerY, 2)
             );
 
             if (distance < minDistance) {
@@ -115,10 +188,15 @@ export const ArucoDetector = ({
               closestMarker = marker;
             }
           }
-          
-          // Report marker if close to center
-          if (minDistance < 100) {
-            onTargetDetected(closestMarker.id);
+
+          if (closestMarker) {
+            console.log(
+              `Closest marker id: ${closestMarker.id} at distance ${minDistance}`
+            );
+
+            if (minDistance < 100) {
+              onTargetDetected(closestMarker.id);
+            }
           }
         }
       } catch (err) {
@@ -129,14 +207,17 @@ export const ArucoDetector = ({
     animationRef.current = requestAnimationFrame(detectMarkers);
   };
 
+  // Start/stop detection loop
   useEffect(() => {
+    console.log("Starting marker detection loop:", { isLoaded, isCameraReady });
     if (isLoaded && isCameraReady) {
       animationRef.current = requestAnimationFrame(detectMarkers);
     }
-    
+
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
+        console.log("Cancelled marker detection loop");
       }
     };
   }, [isLoaded, isCameraReady]);
@@ -173,22 +254,20 @@ export const ArucoDetector = ({
         ref={webcamRef}
         audio={false}
         screenshotFormat="image/jpeg"
-        videoConstraints={{ 
+        videoConstraints={{
           facingMode: "environment",
           width: { ideal: 640 },
-          height: { ideal: 480 }
+          height: { ideal: 480 },
         }}
         className="absolute inset-0 w-full h-full object-cover"
         onUserMedia={() => console.log("Camera access granted")}
         onUserMediaError={(err) => console.error("Camera error:", err)}
       />
-      <canvas 
-        ref={canvasRef} 
+      <canvas
+        ref={canvasRef}
         className="absolute inset-0 w-full h-full"
-        style={{ display: 'none' }}
+        style={{ display: "none" }}
       />
-      
-      {/* Targeting UI */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="w-40 h-40 border-4 border-red-500 rounded-full flex items-center justify-center">
           <div className="w-6 h-6 bg-red-500 rounded-full animate-pulse"></div>
