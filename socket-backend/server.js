@@ -118,7 +118,7 @@ io.on("connection", (socket) => {
       id: socket.id,
       name: assignedName,
       markerId: parsedMarkerId,
-      lives: 3,
+      lives: 5,
       kills: 0,
       reloading: false,
     };

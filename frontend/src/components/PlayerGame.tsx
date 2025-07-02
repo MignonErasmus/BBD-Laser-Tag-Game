@@ -36,7 +36,7 @@
     const currentPlayer = players.find(p => p.name === playerName) || {
       id: '',
       name: playerName,
-      lives: 3,
+      lives: 5,
       kills: 0,
       reloading: false,
       markerId: markerId
@@ -176,7 +176,7 @@
           
           <div className="flex items-center space-x-6">
             <div className="flex space-x-1">
-              {Array.from({ length: 3 }).map((_, i) => (
+              {Array.from({ length: 5 }).map((_, i) => (
                 <span
                   key={i}
                   className={`text-2xl ${
