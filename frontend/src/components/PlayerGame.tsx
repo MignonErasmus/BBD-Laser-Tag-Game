@@ -1,11 +1,12 @@
-'use client';
-
+// src/components/PlayerGame.tsx
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowUp } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { detectShapes } from "./ShapeDetector"; // Import the detectShapes function
+// Assuming react-router-dom for navigation. If not, remove or replace.
+import { useNavigate } from "react-router-dom"; 
+import { detectShapes } from "./ShapeDetector";
+import { useOpenCv } from "@/hooks/useOpenCv"; // Import the custom hook
 
 // #TODO: NEED TO REMOVE THE simulation code
 // 🧐 Simple interface for testing
@@ -19,8 +20,11 @@ export const PlayerGame = ({ playerName, gameCode }: PlayerGameProps) => {
 
     // Camera setup
     const videoRef = useRef<HTMLVideoElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null); // Create a ref for the canvas
-    const [error, setError] = useState<string | null>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [cameraError, setCameraError] = useState<string | null>(null); // Renamed for clarity
+    
+    // Load OpenCV.js using the custom hook
+    const { isLoaded: openCvLoaded, error: openCvLoadingError } = useOpenCv();
 
     // 🧐 Similation setup
     const [health, setHealth] = useState(3);
@@ -31,6 +35,24 @@ export const PlayerGame = ({ playerName, gameCode }: PlayerGameProps) => {
 
     /// ***** useEffect *****
     useEffect(() => {
+        // Log the OpenCV loading status from the hook
+        console.log(`[PlayerGame Effect] OpenCV Loaded: ${openCvLoaded}, Loading Error: ${openCvLoadingError}`);
+
+        // If OpenCV is not loaded yet, or there was an error loading it,
+        // we should not proceed with camera and shape detection setup.
+        if (!openCvLoaded) {
+            if (openCvLoadingError) {
+                setCameraError(`OpenCV.js loading failed: ${openCvLoadingError}`);
+                console.error("[PlayerGame Effect] Stopping due to OpenCV.js loading error.");
+            } else {
+                console.log("[PlayerGame Effect] Waiting for OpenCV.js to load...");
+            }
+            return; 
+        }
+
+        // --- OpenCV is confirmed loaded, proceed with camera and detection ---
+        console.log("[PlayerGame Effect] OpenCV.js is ready. Starting camera and detection setup.");
+
         // 🎥 Camera Access
         const startCamera = async () => {
             try {
@@ -39,35 +61,45 @@ export const PlayerGame = ({ playerName, gameCode }: PlayerGameProps) => {
                     audio: false, // audio off
                 });
 
-                // play current
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
-                    videoRef.current.play();
+                    // play current, ensure metadata is loaded before drawing to canvas
+                    await videoRef.current.play(); 
+                    console.log("[PlayerGame Effect] Camera stream started and playing.");
                 }
             } catch (err: any) {
-                console.error("Camera error:", err);
-                setError(err.message || "Unable to access camera");
-            } // trycatch
+                console.error("[PlayerGame Effect] Camera access error:", err);
+                setCameraError(err.message || "Unable to access camera. Please check permissions.");
+            }
         };
 
-        /// start camera
-        startCamera();
-
         // Shape detection interval
-        const detectionInterval = setInterval(() => {
-            if (videoRef.current && canvasRef.current && videoRef.current.readyState === 4) {
-                const video = videoRef.current;
-                const canvas = canvasRef.current;
-                const context = canvas.getContext('2d');
+        let detectionInterval: NodeJS.Timeout;
+        if (openCvLoaded) { // Only set up interval if OpenCV is loaded
+             detectionInterval = setInterval(() => {
+                // Ensure video is ready and canvas ref exists
+                if (videoRef.current && canvasRef.current && videoRef.current.readyState === 4) {
+                    const video = videoRef.current;
+                    const canvas = canvasRef.current;
+                    const context = canvas.getContext('2d');
 
-                if (context) {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    detectShapes(canvas);
+                    if (context) {
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        detectShapes(canvas); // Call the detection function
+                    } else {
+                        console.warn("[PlayerGame Effect] Canvas 2D context not available.");
+                    }
+                } else if (videoRef.current && videoRef.current.readyState < 4) {
+                    console.log("[PlayerGame Effect] Video not yet ready for capture (readyState:", videoRef.current.readyState, ")");
                 }
-            }
-        }, 100); // Run detection every 100ms
+            }, 100); // Run detection every 100ms
+        }
+
+
+        /// Start camera only if OpenCV is loaded
+        startCamera();
 
         // 🧐 Game Timer
         const timer = setInterval(() => {
@@ -89,17 +121,18 @@ export const PlayerGame = ({ playerName, gameCode }: PlayerGameProps) => {
 
         // 🧐 Cleanup
         return () => {
-            clearInterval(detectionInterval);
+            clearInterval(detectionInterval); // Clear detection interval
             clearInterval(timer);
             clearInterval(damageSimulator);
 
             if (videoRef.current && videoRef.current.srcObject) {
                 const stream = videoRef.current.srcObject as MediaStream;
                 stream.getTracks().forEach((track) => track.stop());
+                console.log("[PlayerGame Effect] Camera stream stopped during cleanup.");
             }
+            console.log("[PlayerGame Effect] Effect cleanup finished.");
         };
-    }, [health]);
-
+    }, [openCvLoaded, openCvLoadingError, health]); // Add OpenCV loading state to dependencies
 
     const handleShoot = () => {
         if (isEliminated) return;
@@ -139,12 +172,24 @@ export const PlayerGame = ({ playerName, gameCode }: PlayerGameProps) => {
                 </Card>
             </div>
         );
-    } // if statement to check if the player is eliminated
+    } 
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-900 via-slate-900 to-cyan-900 relative overflow-hidden">
-            {/* 🔴 Camera Video Feed and Canvas for Shape Detection */}
-            {!error && (
+            {/* Display loading/error messages */}
+            {cameraError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/80 text-white text-xl z-20">
+                    Error: {cameraError}
+                </div>
+            )}
+            {!cameraError && !openCvLoaded && ( // Show loading only if no camera error and OpenCV is not loaded
+                <div className="absolute inset-0 flex items-center justify-center bg-black/80 text-white text-xl z-20">
+                    Loading OpenCV.js...
+                </div>
+            )}
+
+            {/* 🔴 Camera Video Feed and Canvas for Shape Detection - Render only when ready */}
+            {!cameraError && openCvLoaded && (
                 <>
                     <video
                         ref={videoRef}
