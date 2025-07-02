@@ -27,6 +27,10 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
   const [gameTime, setGameTime] = useState(0);
   const [recentActivity, setRecentActivity] = useState<string[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  // state to get first kill
+  const [firstBloodPlayerId, setFirstBloodPlayerId] = useState<string | null>(null);
+  const prevKillsRef = useRef<Map<string, number>>(new Map());
+  const hasFirstBloodBeenSet = useRef(false);
 
   useEffect(() => {
     const alivePlayers = players.filter(p => p.lives > 0).length;
@@ -64,8 +68,30 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
         if (b.lives === 0 && a.lives > 0) return -1;
         return b.kills - a.kills;
       });
+
+      // ✅ Only detect first blood ONCE
+      if (!hasFirstBloodBeenSet.current) {
+        // Find player who had a kill increase
+        for (const player of data) {
+          const prevKills = prevKillsRef.current.get(player.id) ?? 0;
+          if (prevKills === 0 && player.kills === 1) {
+            setFirstBloodPlayerId(player.id); // Assign the first one found
+            hasFirstBloodBeenSet.current = true;
+            break; // Stop after first detected
+          }
+        }
+      }
+
+      // ✅ Always update the reference map with latest kills
+      for (const player of data) {
+        prevKillsRef.current.set(player.id, player.kills);
+      }
+
       setPlayers(sorted);
     });
+
+
+    
 
     socket.on("player_action", (activity: string) => {
       console.log("Player action received:", activity);
@@ -148,6 +174,11 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
                           {/* badge for johnwick */}
                           {p.kills === maxKills && maxKills > 0 && (
                             <Badge className="bg-red-700 text-white text-xs">Johnwick</Badge>
+                          )}
+                          
+                          {/* badge for first blood */}
+                          {p.id === firstBloodPlayerId && (
+                            <Badge className="bg-purple-700 text-white text-xs ml-2">Firstblood</Badge>
                           )}
                         </p>
                         <div className="flex space-x-1 mt-1">
