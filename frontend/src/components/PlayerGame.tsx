@@ -112,6 +112,7 @@
       socket.emit("shoot", {
         gameID: gameCode,
         targetMarkerId: currentTarget
+        
       });
 
       setReloading(true);
