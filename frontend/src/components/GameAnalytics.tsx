@@ -25,6 +25,8 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [gameTime, setGameTime] = useState(0);
   const [recentActivity, setRecentActivity] = useState<string[]>([]);
+  const [firstEliminatedId, setFirstEliminatedId] = useState<string | null>(null);
+  const [mvpId, setMvpId] = useState<string | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -41,6 +43,11 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
     if (alivePlayers <= 1 && timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
+    }
+
+    // get mvp player
+    if (alivePlayers == 1 && !mvpId) {
+
     }
   
     return () => {
@@ -59,6 +66,15 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
 
     socket.on("players_update", (data: Player[]) => {
       setPlayers(data);
+
+      // check the first time a players health is 0
+      if (!firstEliminatedId) {
+        const eliminatedNow = data.find(p => p.lives === 0 && !players.find(prev => prev.id === p.id && prev.lives === 0));
+        if (eliminatedNow) {
+          setFirstEliminatedId(eliminatedNow.id);
+        }
+      }
+
     });
 
     socket.on("player_action", (activity: string) => {
@@ -82,6 +98,9 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
     if (b.lives === 0 && a.lives > 0) return -1;
     return b.kills - a.kills;
   });
+
+  // Get max kills
+  const maxKills = Math.max(...players.map(p => p.kills), 0);
 
   const totalKills = players.reduce((sum, p) => sum + p.kills, 0);
   const activeCount = players.filter(p => p.lives > 0).length;
@@ -132,13 +151,25 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
                   <div key={p.id} className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <Badge className={`px-2 py-1 text-sm ${i===0?'bg-yellow-500':i===1?'bg-gray-400':i===2?'bg-amber-600':'bg-slate-600'} text-white`}>
-                        #{i+1}
+                        #{i+1} 
                       </Badge>
                       <div>
-                        <p className="text-white font-medium">{p.name}</p>
+                        <p className="text-white font-medium">
+                          {p.name}  
+                          {/* most kills badge */}
+                          {p.kills == maxKills && maxKills > 0 && (
+                          <Badge className="bg-red-600 text-white text-xs mt-1">Johnwick</Badge>
+                        )}
+                        {/* first eliminated badge */}
+                         {p.id === firstEliminatedId && (
+                            <Badge className="bg-gray-700 text-white text-xs">Demo Dummy</Badge>
+                          )}
+                        </p>
+              
                         <div className="flex space-x-1 mt-1">
                           <span className="text-red-400">♥ {p.lives}</span>
                           <span className="text-cyan-400 ml-2">{p.kills} kills</span>
+                          
                         </div>
                       </div>
                     </div>
