@@ -71,7 +71,7 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
 
       // check first kill
       if (!firstBloodId) {
-        const killer = data.find(p => p.kills > 0 && !players.find(prev => prev.id === p.id && prev.kills > 0));
+        const killer = data.find(p => p.kills === 1 && !players.find(prev => prev.id === p.id && prev.kills > 0));
         if (killer) {
           setFirstBloodId(killer.id);
         }
