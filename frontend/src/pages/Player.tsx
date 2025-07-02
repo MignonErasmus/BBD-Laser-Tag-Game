@@ -12,10 +12,12 @@ const Player = () => {
   const [playerState, setPlayerState] = useState<PlayerState>('joining');
   const [playerName, setPlayerName] = useState<string>('');
   const [gameCode, setGameCode] = useState<string>('');
+  const [markerId, setMarkerId] = useState<number>(0);
 
-  const handleGameJoined = (name: string, code: string) => {
+  const handleGameJoined = (name: string, code: string, markerId: number) => {
     setPlayerName(name);
     setGameCode(code);
+    setMarkerId(markerId);
     setPlayerState('in-game');
   };
 
@@ -48,6 +50,7 @@ const Player = () => {
           <PlayerGame 
             playerName={playerName}
             gameCode={gameCode}
+            markerId={markerId}
           />
         )}
       </div>
