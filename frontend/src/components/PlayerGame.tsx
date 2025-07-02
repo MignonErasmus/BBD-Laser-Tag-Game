@@ -111,9 +111,16 @@
   }
 };
 
+    // 1. Load sound outside the function so it doesn't reload every time
+    const shootSound = new Audio('/sounds/shot-and-reload-sound.mp3'); // Replace with your actual sound file path
 
     const handleShoot = () => {
       if (!socket || reloading || isEliminated || !currentTarget) return;
+
+      
+      // Play the shooting sound
+      shootSound.currentTime = 0; // rewind sound to start (in case of quick repeated shots)
+      shootSound.play();
 
       socket.emit("shoot", {
         gameID: gameCode,
