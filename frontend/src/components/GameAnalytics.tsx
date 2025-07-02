@@ -27,6 +27,7 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
   const [recentActivity, setRecentActivity] = useState<string[]>([]);
   const [firstEliminatedId, setFirstEliminatedId] = useState<string | null>(null);
   const [mvpId, setMvpId] = useState<string | null>(null);
+  const [firstBloodId, setFirstBloodId] = useState<string | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -43,13 +44,14 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
     if (alivePlayers <= 1 && timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
-    }
 
-    // get mvp player
-    if (alivePlayers == 1 && !mvpId) {
-
+      // get mvp player
+      if (alivePlayers == 1 && !mvpId) {
+          const winner = players.find(p => p.lives > 0);
+          if (winner) setMvpId(winner.id); 
+      } 
     }
-  
+    
     return () => {
       // Clean up when component unmounts
       if (timerRef.current) {
@@ -57,7 +59,7 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
         timerRef.current = null;
       }
     };
-  }, [players]);
+  }, [players, mvpId]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -66,6 +68,14 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
 
     socket.on("players_update", (data: Player[]) => {
       setPlayers(data);
+
+      // check first kill
+      if (!firstBloodId) {
+        const killer = data.find(p => p.kills > 0 && !players.find(prev => prev.id === p.id && prev.kills > 0));
+        if (killer) {
+          setFirstBloodId(killer.id);
+        }
+      }
 
       // check the first time a players health is 0
       if (!firstEliminatedId) {
@@ -158,14 +168,25 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
                           {p.name}  
                           {/* most kills badge */}
                           {p.kills == maxKills && maxKills > 0 && (
-                          <Badge className="bg-red-600 text-white text-xs mt-1">Johnwick</Badge>
-                        )}
-                        {/* first eliminated badge */}
-                         {p.id === firstEliminatedId && (
-                            <Badge className="bg-gray-700 text-white text-xs">Demo Dummy</Badge>
+                            <Badge className="bg-red-600 text-white text-xs mt-1">Johnwick</Badge>
                           )}
+                          
+                          {/* first eliminated badge */}
+                          {p.id === firstEliminatedId && (
+                              <Badge className="bg-gray-700 text-white text-xs">Demo Dummy</Badge>
+                            )}
+
+                            {/* mvp badge */}
+                            {p.id === mvpId && (
+                              <Badge className="bg-green-600 text-white text-xs">MVP</Badge>
+                            )}
+
+                            {/* first blood badge */}
+                            {p.id === firstBloodId && (
+                              <Badge className="bg-pink-700 text-white text-xs">First Blood</Badge>
+                            )}
                         </p>
-              
+                        
                         <div className="flex space-x-1 mt-1">
                           <span className="text-red-400">♥ {p.lives}</span>
                           <span className="text-cyan-400 ml-2">{p.kills} kills</span>
