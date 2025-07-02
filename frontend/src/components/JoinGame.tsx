@@ -100,29 +100,31 @@
 // };
 
 
+// src/components/JoinGame.tsx
 "use client";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getSocket } from "@/socket"; // 👈 use the singleton
+import { getSocket } from "@/socket";
 
 interface JoinGameProps {
-  onGameJoined: (playerName: string, gameCode: string) => void;
+  onGameJoined: (playerName: string, gameCode: string, markerId: number) => void;
 }
 
 export const JoinGame = ({ onGameJoined }: JoinGameProps) => {
   const [gameCode, setGameCode] = useState('');
+  const [markerId, setMarkerId] = useState('');
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     const socket = getSocket();
 
-    const handleJoinSuccess = ({ name }: { name: string }) => {
+    const handleJoinSuccess = ({ name, markerId }: { name: string; markerId: number }) => {
       setIsJoining(false);
-      onGameJoined(name, gameCode.trim());
+      onGameJoined(name, gameCode.trim(), markerId);
     };
 
     const handleError = (msg: string) => {
@@ -151,6 +153,7 @@ export const JoinGame = ({ onGameJoined }: JoinGameProps) => {
     const socket = getSocket();
     socket.emit("join_game", {
       gameID: gameCode.trim(),
+      markerId: markerId ? parseInt(markerId, 10) : undefined
     });
   };
 
@@ -176,6 +179,25 @@ export const JoinGame = ({ onGameJoined }: JoinGameProps) => {
               maxLength={6}
             />
           </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="markerId" className="text-slate-300">
+              Your Marker ID (0-249)
+            </Label>
+            <Input
+              id="markerId"
+              type="number"
+              min="0"
+              max="249"
+              placeholder="If you have a printed marker"
+              value={markerId}
+              onChange={(e) => setMarkerId(e.target.value)}
+              className="bg-slate-700 border-slate-600 text-white"
+            />
+            <p className="text-slate-400 text-sm">
+              If you have a physical marker, enter its ID. Otherwise leave blank for a random assignment.
+            </p>
+          </div>
 
           {error && (
             <p className="text-red-400 text-sm text-center">{error}</p>
@@ -193,6 +215,7 @@ export const JoinGame = ({ onGameJoined }: JoinGameProps) => {
             <h4 className="text-white font-semibold mb-2 text-sm">How to Play</h4>
             <ul className="space-y-1 text-xs text-slate-300">
               <li>• You start with 3 hearts (health)</li>
+              <li>• Point your camera at opponents' markers to target them</li>
               <li>• Tap the shoot button to eliminate opponents</li>
               <li>• Avoid getting shot to stay in the game</li>
               <li>• Last player standing wins!</li>

@@ -1,29 +1,22 @@
-
 import { useState, useEffect } from "react";
-// import { io, Socket } from "socket.io-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-
 import { getSocket } from "@/socket";
-
-// const socket = getSocket();
 
 interface Player {
   id: string;
   name: string;
   lives: number;
   kills: number;
+  markerId: number;
 }
 
 interface WaitingRoomProps {
   gameCode: string;
-  // players: Player[];
   onStartGame: () => void;
 }
-
-// let socket: Socket;
 
 export const WaitingRoom = ({ gameCode, onStartGame }: WaitingRoomProps) => {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -37,7 +30,6 @@ export const WaitingRoom = ({ gameCode, onStartGame }: WaitingRoomProps) => {
 
     // Listen for player updates
     socket.on("players_update", (updatedPlayers: Player[]) => {
-      console.log("Players updated:", updatedPlayers)
       setPlayers(updatedPlayers);
     });
 
@@ -51,39 +43,23 @@ export const WaitingRoom = ({ gameCode, onStartGame }: WaitingRoomProps) => {
       alert(msg);
     });
 
-    socket.on("disconnect", (reason) => {
-      console.warn("Client disconnected:", reason);
-    });
-
     return () => {
-      // socket.disconnect();
       socket.off("players_update");
       socket.off("game_started");
       socket.off("error");
-      socket.off("disconnect");
     };
   }, [gameCode, onStartGame]);
 
   const minPlayersReached = players.length >= 4;
 
-  // const handleStartGame = () => {
-  //   if (minPlayersReached) {
-  //     socket.emit("start_game", gameCode);
-  //   } else {
-  //     alert("Need at least 4 players to start the game.");
-  //   }
-  // };
-
   const handleStartGame = () => {
     if (minPlayersReached) {
       const socket = getSocket();
       socket.emit("start_game", gameCode);
-      onStartGame(); // Notify parent if needed
     } else {
       alert("Need at least 4 players to start the game.");
     }
   };
-  
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -117,6 +93,9 @@ export const WaitingRoom = ({ gameCode, onStartGame }: WaitingRoomProps) => {
                     </AvatarFallback>
                   </Avatar>
                   <p className="text-white font-medium">{player.name}</p>
+                  <p className="text-sm text-purple-400 mt-1">
+                    Marker ID: {player.markerId}
+                  </p>
                   <Badge variant="outline" className="mt-1 text-green-400 border-green-400">
                     Ready
                   </Badge>
