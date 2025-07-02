@@ -23,7 +23,7 @@ export const ArucoDetector = ({
   const [error, setError] = useState<string | null>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
 
-  // Debug log script status and AR exposure
+  // Logs for scripts & AR availability
   useEffect(() => {
     console.log("cv loaded?", cv.loaded);
     console.log("aruco loaded?", aruco.loaded);
@@ -33,7 +33,7 @@ export const ArucoDetector = ({
     console.log("window.AR.Detector:", (window as any).AR?.Detector);
   }, [cv.loaded, aruco.loaded, cv.error, aruco.error]);
 
-  // Report to parent when scanner is ready (improved logs)
+  // Notify parent about readiness
   useEffect(() => {
     console.log("Ready check:", { isLoaded, isCameraReady });
     const ready = isLoaded && isCameraReady;
@@ -43,7 +43,7 @@ export const ArucoDetector = ({
     }
   }, [isLoaded, isCameraReady, onReadyChange]);
 
-  // Initialize detector (with delay to ensure window.AR is populated)
+  // Initialize AR detector with MIP dictionary
   useEffect(() => {
     if (cv.loaded && aruco.loaded) {
       const timer = setTimeout(() => {
@@ -51,13 +51,13 @@ export const ArucoDetector = ({
         if (AR?.Detector && AR?.DICTIONARIES) {
           try {
             detectorRef.current = new AR.Detector({
-              dictionary: AR.DICTIONARIES.DICT_5X5_100,
+              dictionary: AR.DICTIONARIES.ARUCO_MIP_36H12,
               minMarkerPerimeter: 0.15,
               maxMarkerPerimeter: 0.9,
               sizeAfterPerspectiveRemoval: 70,
             });
             setIsLoaded(true);
-            console.log("Detector initialized successfully with DICT_5X5_100");
+            console.log("Detector initialized successfully with ARUCO_MIP_36H12");
           } catch (err) {
             const message = "Failed to initialize detector: " + (err as Error).message;
             setError(message);
@@ -68,19 +68,24 @@ export const ArucoDetector = ({
           setError(message);
           console.error(message);
         }
-      }, 100); // slight delay for globals to attach
-
+      }, 100);
       return () => clearTimeout(timer);
     }
   }, [cv.loaded, aruco.loaded]);
 
-  // Detect when camera becomes ready, with polling fix and extra logging
+  // Camera readiness detection with verbose logs
   useEffect(() => {
     const webcam = webcamRef.current;
-    if (!webcam) return;
+    if (!webcam) {
+      console.log("No webcam ref available yet");
+      return;
+    }
 
     const video = webcam.video;
-    if (!video) return;
+    if (!video) {
+      console.log("No video element available yet");
+      return;
+    }
 
     const handleCanPlay = () => {
       console.log("canplay event fired");
@@ -106,6 +111,7 @@ export const ArucoDetector = ({
           clearInterval(pollInterval);
         }
       }, 100);
+
       return () => clearInterval(pollInterval);
     }
 
@@ -114,7 +120,7 @@ export const ArucoDetector = ({
     };
   }, []);
 
-  // Frame processing loop
+  // Detection loop with marker logging
   const detectMarkers = () => {
     if (
       !isLoaded ||
@@ -152,7 +158,6 @@ export const ArucoDetector = ({
           let minDistance = Infinity;
 
           for (const marker of markers) {
-            // Compute center if missing
             let center = marker.center;
             if (!center) {
               const corners = marker.corners;
@@ -168,9 +173,8 @@ export const ArucoDetector = ({
                   x: sum.x / 4,
                   y: sum.y / 4,
                 };
-                marker.center = center; // cache it
+                marker.center = center;
               } else {
-                // Skip malformed marker
                 continue;
               }
             }
@@ -203,10 +207,10 @@ export const ArucoDetector = ({
     animationRef.current = requestAnimationFrame(detectMarkers);
   };
 
-  // Start detection loop when ready
+  // Start/stop detection loop
   useEffect(() => {
+    console.log("Starting marker detection loop:", { isLoaded, isCameraReady });
     if (isLoaded && isCameraReady) {
-      console.log("Starting marker detection loop");
       animationRef.current = requestAnimationFrame(detectMarkers);
     }
 
@@ -217,8 +221,6 @@ export const ArucoDetector = ({
       }
     };
   }, [isLoaded, isCameraReady]);
-
-  // --- RENDER ---
 
   if (error) {
     return (
@@ -266,8 +268,6 @@ export const ArucoDetector = ({
         className="absolute inset-0 w-full h-full"
         style={{ display: "none" }}
       />
-
-      {/* Targeting UI */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="w-40 h-40 border-4 border-red-500 rounded-full flex items-center justify-center">
           <div className="w-6 h-6 bg-red-500 rounded-full animate-pulse"></div>
