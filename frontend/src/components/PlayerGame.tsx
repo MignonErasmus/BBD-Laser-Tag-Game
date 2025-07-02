@@ -99,12 +99,18 @@
       return () => clearInterval(timer);
     }, [isEliminated]);
 
-    const handleTargetDetected = (detectedMarkerId: number) => {
-      // Only set target if it's not the player's own marker
-      if (detectedMarkerId !== markerId) {
-        setCurrentTarget(detectedMarkerId);
-      }
-    };
+   const handleTargetDetected = (detectedMarkerId: number | null) => {
+  if (detectedMarkerId === null || detectedMarkerId === markerId) {
+    setCurrentTarget(null);
+  }else{
+    setCurrentTarget(detectedMarkerId);
+  }
+
+  if (detectedMarkerId !== markerId) {
+    setCurrentTarget(detectedMarkerId);
+  }
+};
+
 
     const handleShoot = () => {
       if (!socket || reloading || isEliminated || !currentTarget) return;
