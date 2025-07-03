@@ -171,6 +171,7 @@ io.on("connection", (socket) => {
     const game = games[gameID];
     if (!game || !game.started) {
       console.log(`Shoot error: Game ${gameID} not found or not started.`);
+      socket.emit("error", "Game not found or not started.");
       return;
     }
 
