@@ -126,6 +126,15 @@ export const PlayerGame = ({ playerName, gameCode, markerId }: PlayerGameProps) 
 
   const handleBackToHome = () => navigate("/");
 
+  const handleHeal = () => {
+    if (!socket || currentPlayer.points < 400 || currentPlayer.lives > 3) return;
+  
+    socket.emit("heal", {
+      gameID: gameCode,
+      playerId: currentPlayer.id,
+    });
+  };
+
   const handleBomb = () => {
     if (!socket || currentPlayer.points < 400) return;
   
@@ -251,7 +260,7 @@ export const PlayerGame = ({ playerName, gameCode, markerId }: PlayerGameProps) 
         </Button>
       </div>
 
-      <div className="absolute bottom-8 right-8 z-10">
+      {/* <div className="absolute bottom-8 right-8 z-10">
   <Button
     onClick={handleBomb}
     disabled={currentPlayer.points < 400}
@@ -265,8 +274,34 @@ export const PlayerGame = ({ playerName, gameCode, markerId }: PlayerGameProps) 
       <div className="text-white text-xs font-bold">BOMB</div>
     </div>
   </Button>
-</div>
+</div> */}
 
+<div className="absolute bottom-4 right-4 z-10 flex flex-col items-end space-y-2">
+
+  {/* Buy Lives Button (only if eligible) */}
+  {currentPlayer.points >= 400 && currentPlayer.lives <= 3 && (
+    <Button
+      onClick={handleHeal}
+      className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 text-sm rounded-md shadow-md"
+    >
+      ❤️ Buy 2 Lives (-400 pts)
+    </Button>
+  )}
+
+  {/* Bomb Button (always shown if points >= 400) */}
+  <Button
+    onClick={handleBomb}
+    disabled={currentPlayer.points < 400}
+    className={`${
+      currentPlayer.points >= 400
+        ? "bg-red-600 hover:bg-red-500"
+        : "bg-gray-600 cursor-not-allowed"
+    } text-white px-4 py-2 text-sm rounded-md shadow-md`}
+  >
+    💣 Use Bomb (-400 pts)
+  </Button>
+
+</div>
   
       <div className="absolute bottom-4 left-4 bg-slate-800/80 p-2 rounded-lg text-xs text-slate-400">
         <p>Scanner: {isScannerReady ? "Ready" : "Loading"}</p>
