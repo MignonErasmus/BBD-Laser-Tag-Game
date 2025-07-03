@@ -10,6 +10,7 @@ interface Player {
   name: string;
   lives: number;
   kills: number;
+  points:number;
   reloading: boolean;
   markerId: number;
 }
@@ -38,8 +39,9 @@ export const PlayerGame = ({ playerName, gameCode, markerId }: PlayerGameProps) 
     name: playerName,
     lives: 5,
     kills: 0,
+    points: 0,
     reloading: false,
-    markerId
+    markerId,
   };
 
   useEffect(() => {
@@ -165,6 +167,10 @@ export const PlayerGame = ({ playerName, gameCode, markerId }: PlayerGameProps) 
           <div className="bg-slate-900/80 px-3 py-1 sm:px-4 sm:py-2 rounded border border-cyan-400 text-center">
             <span className="text-yellow-400 font-bold text-lg sm:text-xl">{currentPlayer.kills}</span>
             <div className="text-xs text-cyan-400">KILLS</div>
+          </div>
+          <div className="bg-slate-900/80 px-3 py-1 sm:px-4 sm:py-2 rounded border border-cyan-400 text-center">
+            <span className="text-yellow-400 font-bold text-lg sm:text-xl">{currentPlayer.points}</span>
+            <div className="text-xs text-green-400">POINTS</div>
           </div>
           <div className="bg-slate-900/80 px-3 py-1 sm:px-4 sm:py-2 rounded border border-purple-400 text-center">
             <span className="text-purple-400 font-bold text-lg sm:text-xl">
