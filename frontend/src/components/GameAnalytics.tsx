@@ -18,6 +18,7 @@ interface Player {
   name: string;
   lives: number;
   kills: number;
+  points: number;
   markerId: number;
 }
 
@@ -211,7 +212,8 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
                         </p>
                         <div className="flex space-x-1 mt-1">
                           <span className="text-red-400">♥ {p.lives}</span>
-                          <span className="text-cyan-400 ml-2">{p.kills} kills</span>
+                          <span className="text-cyan-400 ml-2">⚔️ {p.kills} kills</span>
+                          <span className="text-green-400 ml-2">💎{p.points} points</span>
                         </div>
                       </div>
                     </div>

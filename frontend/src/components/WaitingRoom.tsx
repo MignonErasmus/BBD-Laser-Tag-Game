@@ -10,6 +10,7 @@ interface Player {
   name: string;
   lives: number;
   kills: number;
+  points: number;
   markerId: number;
 }
 

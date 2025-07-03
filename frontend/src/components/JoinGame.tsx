@@ -95,7 +95,7 @@ export const JoinGame = ({ onGameJoined }: JoinGameProps) => {
           
           <div className="space-y-2">
             <Label htmlFor="markerId" className="text-slate-300">
-              Your Marker ID (0-1024)
+              Your Marker ID (0-14)
             </Label>
             <Input
               id="markerId"
@@ -108,7 +108,7 @@ export const JoinGame = ({ onGameJoined }: JoinGameProps) => {
               className="bg-slate-700 border-slate-600 text-white"
             />
             <p className="text-slate-400 text-sm">
-              Use a marker ID from 0-1024. Generate markers at <a 
+              Use a marker ID from 0-14. Generate markers at <a 
                 href="https://chev.me/arucogen" 
                 target="_blank" 
                 rel="noopener noreferrer"
