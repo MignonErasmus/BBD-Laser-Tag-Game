@@ -28,6 +28,14 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
   const [gameTime, setGameTime] = useState(0);
   const [recentActivity, setRecentActivity] = useState<string[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  // state to get first kill
+  const [firstBloodPlayerId, setFirstBloodPlayerId] = useState<string | null>(null);
+  const prevKillsRef = useRef<Map<string, number>>(new Map());
+  const hasFirstBloodBeenSet = useRef(false);
+  // states for the first player eliminated
+  const [firstEliminatedPlayerId, setFirstEliminatedPlayerId] = useState<string | null>(null);
+  const hasFirstEliminatedBeenSet = useRef(false);
+  const prevLivesRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     const alivePlayers = players.filter(p => p.lives > 0).length;
@@ -65,8 +73,49 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
         if (b.lives === 0 && a.lives > 0) return -1;
         return b.kills - a.kills;
       });
+
+      // Only detect first blood ONCE
+      if (!hasFirstBloodBeenSet.current) {
+        // Find player who had a kill increase
+        for (const player of data) {
+          const prevKills = prevKillsRef.current.get(player.id) ?? 0;
+          if (prevKills === 0 && player.kills === 1) {
+            setFirstBloodPlayerId(player.id); // Assign the first one found
+            hasFirstBloodBeenSet.current = true;
+            break; // Stop after first detected
+          }
+        }
+      }
+
+      // Always update the reference map with latest kills
+      for (const player of data) {
+        prevKillsRef.current.set(player.id, player.kills);
+      }
+
+       //  Detect first eliminated ONCE
+        if (!hasFirstEliminatedBeenSet.current) {
+          for (const player of data) {
+            const prevLives = prevLivesRef.current.get(player.id) ?? player.lives;
+            if (prevLives > 0 && player.lives === 0) {
+              setFirstEliminatedPlayerId(player.id);
+              hasFirstEliminatedBeenSet.current = true;
+              break;
+            }
+          }
+        }
+
+        for (const player of data) {
+          prevKillsRef.current.set(player.id, player.kills);
+          prevLivesRef.current.set(player.id, player.lives); // lives reference
+        }
+
+
+
       setPlayers(sorted);
     });
+
+
+    
 
     socket.on("player_action", (activity: string) => {
       console.log("Player action received:", activity);
@@ -94,6 +143,7 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
   const activeCount = players.filter(p => p.lives > 0).length;
   const elimCount = players.filter(p => p.lives === 0).length;
   const formatTime = (s: number) => `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`;
+  const maxKills = Math.max(...players.map(p => p.kills), 0);
 
   const handleBack = () => navigate('/');
 
@@ -142,7 +192,24 @@ export const GameAnalytics = ({ gameCode }: GameAnalyticsProps) => {
                         #{i+1}
                       </Badge>
                       <div>
-                        <p className="text-white font-medium">{p.name} #{p.markerId}</p>
+                        <p className="text-white font-medium">
+                          {p.name} #{p.markerId}
+
+                          {/* badge for johnwick */}
+                          {p.kills === maxKills && maxKills > 0 && (
+                            <Badge className="bg-red-700 text-white text-xs">Johnwick</Badge>
+                          )}
+                          
+                          {/* badge for first blood */}
+                          {p.id === firstBloodPlayerId && (
+                            <Badge className="bg-purple-700 text-white text-xs ml-2">Firstblood</Badge>
+                          )}
+
+                          {/* badge for first eliminated player */}
+                          {p.id === firstEliminatedPlayerId && (
+                            <Badge className="bg-orange-700 text-white text-xs ml-2">Demo Dummy</Badge>
+                          )}
+                        </p>
                         <div className="flex space-x-1 mt-1">
                           <span className="text-red-400">♥ {p.lives}</span>
                           <span className="text-cyan-400 ml-2">⚔️ {p.kills} kills</span>
