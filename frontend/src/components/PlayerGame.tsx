@@ -43,7 +43,7 @@ export const PlayerGame = ({ playerName, gameCode, markerId }: PlayerGameProps) 
     reloading: false,
     markerId,
   };
-
+  
   useEffect(() => {
     socket.emit("watch_game", gameCode);
 
