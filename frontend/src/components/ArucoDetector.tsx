@@ -30,16 +30,13 @@ export const ArucoDetector = ({
 
     const tryInitDetector = () => {
       const AR = (window as any).AR;
-      if (AR?.Detector && AR?.DICTIONARIES) {
+      if (AR?.Detector) {
         try {
           detectorRef.current = new AR.Detector({
-            dictionary: AR.DICTIONARIES.ARUCO_MIP_36H12,
-            minMarkerPerimeter: 0.15,
-            maxMarkerPerimeter: 0.9,
-            sizeAfterPerspectiveRemoval: 70,
-          });
+            dictionaryName: 'ARUCO'
+        }); // ← use default dictionary
           setIsLoaded(true);
-          console.log("✅ Detector initialized successfully");
+          console.log("✅ Detector initialized (original dictionary)");
         } catch (err) {
           const message = "Failed to initialize detector: " + (err as Error).message;
           setError(message);
@@ -49,7 +46,7 @@ export const ArucoDetector = ({
           retryCount++;
           setTimeout(tryInitDetector, 200);
         } else {
-          setError("❌ AR.Detector or AR.DICTIONARIES not found after retries");
+          setError("❌ AR.Detector not found after retries");
         }
       }
     };
@@ -143,10 +140,12 @@ export const ArucoDetector = ({
           } else {
             onTargetDetected(null); // Clear if too far
           }
+        } else {
+          onTargetDetected(null); // No markers found
         }
       } catch (err) {
         console.error("Marker detection error", err);
-      } 
+      }
     }
 
     animationRef.current = requestAnimationFrame(detectMarkers);
