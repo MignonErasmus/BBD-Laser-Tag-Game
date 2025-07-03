@@ -1,21 +1,50 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
-import { ArrowUp, Monitor, Camera } from "lucide-react";
+import { Monitor, ArrowUp } from "lucide-react";
 import { LobbyCreation } from "@/components/LobbyCreation";
 import { WaitingRoom } from "@/components/WaitingRoom";
 import { GameAnalytics } from "@/components/GameAnalytics";
 
 export type GameState = 'lobby-creation' | 'waiting' | 'in-game';
 
+const LOCAL_STORAGE_KEY = "laser-tag-session";
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [gameState, setGameState] = useState<GameState>('lobby-creation');
   const [gameCode, setGameCode] = useState<string>('');
-  const [players, setPlayers] = useState<Array<{id: string, name: string, health: number, kills: number}>>([]);
+  const [players, setPlayers] = useState<Array<{ id: string; name: string; health: number; kills: number }>>([]);
+
+  // Load saved state from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed?.gameState && parsed?.gameCode) {
+          setGameState(parsed.gameState);
+          setGameCode(parsed.gameCode);
+        }
+      } catch (err) {
+        console.error("Error parsing session from localStorage", err);
+      }
+    }
+  }, []);
+
+  // Save to localStorage on state change
+  useEffect(() => {
+    if (gameCode && gameState !== 'lobby-creation') {
+      localStorage.setItem(
+        LOCAL_STORAGE_KEY,
+        JSON.stringify({ gameState, gameCode })
+      );
+    } else {
+      localStorage.removeItem(LOCAL_STORAGE_KEY); // cleanup if no game
+    }
+  }, [gameState, gameCode]);
 
   const handleLobbyCreated = (code: string) => {
     setGameCode(code);
@@ -27,6 +56,9 @@ const Dashboard = () => {
   };
 
   const handleBackToHome = () => {
+    localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear session
+    setGameState('lobby-creation');
+    setGameCode('');
     navigate('/');
   };
 
@@ -59,7 +91,7 @@ const Dashboard = () => {
         )}
 
         {gameState === 'waiting' && (
-          <WaitingRoom 
+          <WaitingRoom
             gameCode={gameCode}
             players={players}
             onStartGame={handleStartGame}
@@ -67,7 +99,7 @@ const Dashboard = () => {
         )}
 
         {gameState === 'in-game' && (
-          <GameAnalytics 
+          <GameAnalytics
             players={players}
             gameCode={gameCode}
           />
