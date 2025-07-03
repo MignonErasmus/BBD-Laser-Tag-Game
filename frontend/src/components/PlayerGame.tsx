@@ -126,6 +126,17 @@ export const PlayerGame = ({ playerName, gameCode, markerId }: PlayerGameProps) 
 
   const handleBackToHome = () => navigate("/");
 
+  const handleBomb = () => {
+    if (!socket || currentPlayer.points < 400) return;
+  
+    console.log("💣 Bomb activated!");
+    socket.emit("bomb", {
+      gameID: gameCode,
+      playerId: currentPlayer.id,
+    });
+  };
+  
+
   if (isEliminated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-900 via-slate-900 to-cyan-900 flex items-center justify-center p-4">
@@ -239,6 +250,23 @@ export const PlayerGame = ({ playerName, gameCode, markerId }: PlayerGameProps) 
           </div>
         </Button>
       </div>
+
+      <div className="absolute bottom-8 right-8 z-10">
+  <Button
+    onClick={handleBomb}
+    disabled={currentPlayer.points < 400}
+    className={`w-20 h-20 rounded-full border-4 shadow-lg transition-transform ${
+      currentPlayer.points < 400
+        ? "bg-gray-600 border-gray-400 shadow-gray-500/50"
+        : "bg-yellow-500 border-yellow-300 shadow-yellow-500/50 hover:scale-105"
+    }`}
+  >
+    <div className="text-center">
+      <div className="text-white text-xs font-bold">BOMB</div>
+    </div>
+  </Button>
+</div>
+
   
       <div className="absolute bottom-4 left-4 bg-slate-800/80 p-2 rounded-lg text-xs text-slate-400">
         <p>Scanner: {isScannerReady ? "Ready" : "Loading"}</p>
