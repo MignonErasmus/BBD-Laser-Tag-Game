@@ -239,6 +239,82 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("heal", ({ gameID, playerId }) => {
+    const game = games[gameID];
+    if (!game || !game.started) {
+      console.log(`Heal error: Game ${gameID} not found or not started.`);
+      return;
+    }
+  
+    const healer = game.players.find((p) => p.id === playerId);
+    if (!healer || healer.points < 400) {
+      console.log(`Heal error: Healer not found or insufficient points.`);
+      return;
+    }
+  
+    if (healer.lives > 3) {
+      console.log(`Heal denied: ${healer.name} has more than 3 lives.`);
+      return;
+    }
+  
+    healer.points -= 400;
+    healer.lives = Math.min(healer.lives + 2, 5); // max cap at 5 lives
+  
+    io.to(gameID).emit("player_action", `❤️ ${healer.name} bought 2 lives!`);
+    io.to(gameID).emit("players_update", game.players);
+  });
+  
+
+  socket.on("bomb", ({ gameID, playerId }) => {
+    const game = games[gameID];
+    if (!game || !game.started) {
+      console.log(`Bomb error: Game ${gameID} not found or not started.`);
+      return;
+    }
+  
+    const bomber = game.players.find((p) => p.id === playerId);
+    if (!bomber || bomber.points < 400) {
+      console.log(`Bomb error: Bomber not found or insufficient points.`);
+      return;
+    }
+  
+    // Apply bomb effect: all other players lose 1 life
+    game.players.forEach((player) => {
+      if (player.id !== bomber.id && player.lives > 0) {
+        player.lives = player.lives - 2;
+
+        if (player.lives < 0) {
+          player.lives = 0;
+        }
+        
+        if (player.lives <= 0) {
+          io.to(player.id).emit("eliminated");
+          bomber.kills += 1; // fix this
+          io.to(gameID).emit("player_action", `💥 ${player.name} was eliminated by a bomb!`);
+        } else {
+          io.to(gameID).emit("player_action", `💣 ${player.name} lost a life from a bomb!`);
+        }
+      }
+
+      if (player.id === bomber.id) {
+        player.kills = bomber.kills;
+      }
+    });
+  
+    // Deduct bomb cost (optional)
+    bomber.points -= 400;
+    io.to(gameID).emit("player_action", `🔥 ${bomber.name} used a BOMB!`);
+    io.to(gameID).emit("players_update", game.players);
+  
+    // Check win condition
+    const alive = game.players.filter(p => p.lives > 0);
+    if (alive.length === 1) {
+      io.to(gameID).emit("player_action", `🏆 ${alive[0].name} wins the game!`);
+      console.log(`Game ${gameID} ended. ${alive[0].name} wins.`);
+    }
+  });
+  
+
   socket.on("disconnect", () => {
     console.log(`User disconnected: ${socket.id}`);
 

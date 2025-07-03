@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ArrowUp, Smartphone } from "lucide-react";
@@ -7,8 +7,6 @@ import { PlayerGame } from "@/components/PlayerGame";
 
 export type PlayerState = "joining" | "in-game";
 
-const STORAGE_KEY = "player-state";
-
 const Player = () => {
   const navigate = useNavigate();
   const [playerState, setPlayerState] = useState<PlayerState>("joining");
@@ -16,42 +14,14 @@ const Player = () => {
   const [gameCode, setGameCode] = useState<string>("");
   const [markerId, setMarkerId] = useState<number>(0);
 
-  // Load saved state on mount
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed?.playerState) setPlayerState(parsed.playerState);
-        if (parsed?.playerName) setPlayerName(parsed.playerName);
-        if (parsed?.gameCode) setGameCode(parsed.gameCode);
-        if (parsed?.markerId) setMarkerId(parsed.markerId);
-      } catch (err) {
-        console.error("Failed to load player state from localStorage", err);
-      }
-    }
-  }, []);
-
-  // Save state to localStorage on join
   const handleGameJoined = (name: string, code: string, markerId: number) => {
     setPlayerName(name);
     setGameCode(code);
     setMarkerId(markerId);
     setPlayerState("in-game");
-
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        playerState: "in-game",
-        playerName: name,
-        gameCode: code,
-        markerId: markerId,
-      })
-    );
   };
 
   const handleBackToHome = () => {
-    localStorage.removeItem(STORAGE_KEY); // Optional: reset saved state
     navigate("/");
   };
 
