@@ -10,7 +10,7 @@ interface Player {
   name: string;
   lives: number;
   kills: number;
-  points:number;
+  points: number;
   reloading: boolean;
   markerId: number;
 }
@@ -31,6 +31,7 @@ export const PlayerGame = ({ playerName, gameCode, markerId }: PlayerGameProps) 
   const [isAiming, setIsAiming] = useState(false);
   const [currentTarget, setCurrentTarget] = useState<number | null>(null);
   const [isScannerReady, setIsScannerReady] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
 
   const reloadTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -61,44 +62,48 @@ export const PlayerGame = ({ playerName, gameCode, markerId }: PlayerGameProps) 
       setReloading(false);
     };
 
+    const handleGameStarted = () => {
+      setGameStarted(true);
+      setGameTime(0);
+    };
+
     socket.on("players_update", handlePlayersUpdate);
     socket.on("eliminated", handleEliminated);
     socket.on("reload_complete", handleReloadComplete);
-    socket.on("game_started", () => setGameTime(0));
+    socket.on("game_started", handleGameStarted);
     socket.on("error", (msg: string) => console.error("Game error:", msg));
 
     return () => {
       socket.off("players_update", handlePlayersUpdate);
       socket.off("eliminated", handleEliminated);
       socket.off("reload_complete", handleReloadComplete);
-      socket.off("game_started");
+      socket.off("game_started", handleGameStarted);
       socket.off("error");
     };
   }, [socket, gameCode, playerName]);
 
   useEffect(() => {
-    if (!isEliminated) {
+    if (!isEliminated && gameStarted) {
       const timer = setInterval(() => setGameTime(prev => prev + 1), 1000);
       return () => clearInterval(timer);
     }
-  }, [isEliminated]);
+  }, [isEliminated, gameStarted]);
 
-   const handleTargetDetected = (detectedMarkerId: number | null) => {
-  if (detectedMarkerId === null || detectedMarkerId === markerId) {
-    setCurrentTarget(null);
-  }else{
-    setCurrentTarget(detectedMarkerId);
-  }
-
-  if (detectedMarkerId !== markerId) {
-    setCurrentTarget(detectedMarkerId);
-  }
+  const handleTargetDetected = (detectedMarkerId: number | null) => {
+    if (detectedMarkerId === null || detectedMarkerId === markerId) {
+      setCurrentTarget(null);
+    } else {
+      setCurrentTarget(detectedMarkerId);
+    }
   };
 
   const shootSound = new Audio("/sounds/shot-and-reload-sound.mp3");
 
   const handleShoot = () => {
-    if (!socket || reloading || isEliminated || !currentTarget) return;
+    if (!socket || reloading || isEliminated || !currentTarget || !gameStarted) {
+      if (!gameStarted) console.warn("Cannot shoot: Game hasn't started yet.");
+      return;
+    }
 
     shootSound.currentTime = 0;
     shootSound.play();
@@ -112,7 +117,6 @@ export const PlayerGame = ({ playerName, gameCode, markerId }: PlayerGameProps) 
     setReloading(true);
     setCurrentTarget(null);
 
-    // Fallback: auto-reset reloading in case server fails to respond
     reloadTimeout.current = setTimeout(() => {
       console.warn("⏰ Reload fallback triggered. Resetting reload state.");
       setReloading(false);
@@ -152,12 +156,18 @@ export const PlayerGame = ({ playerName, gameCode, markerId }: PlayerGameProps) 
 
   return (
     <div className="min-h-[calc(100vh-7rem)] bg-gradient-to-br from-blue-900 via-slate-900 to-cyan-900 relative overflow-hidden">
+      {!gameStarted && (
+        <div className="absolute top-2 left-1/2 transform -translate-x-1/2 text-yellow-400 text-sm bg-slate-800 px-3 py-1 rounded shadow z-20">
+          ⏳ Waiting for game to start...
+        </div>
+      )}
+
       <div className="absolute top-0 left-0 right-0 z-10 flex flex-col sm:flex-row justify-between items-center p-4 gap-y-2 sm:gap-y-0">
         <div className="flex flex-col sm:flex-row items-center space-y-1 sm:space-y-0 sm:space-x-2">
           <div className="text-cyan-400 font-bold text-lg">{playerName}</div>
           <div className="text-purple-400">Marker ID: {markerId}</div>
         </div>
-  
+
         <div className="flex flex-wrap justify-center sm:justify-end items-center space-x-2 sm:space-x-4 mt-2 sm:mt-0">
           <div className="flex space-x-1">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -180,7 +190,7 @@ export const PlayerGame = ({ playerName, gameCode, markerId }: PlayerGameProps) 
           </div>
         </div>
       </div>
-  
+
       {isAiming ? (
         <div className="absolute inset-0">
           <ArucoDetector
@@ -205,7 +215,7 @@ export const PlayerGame = ({ playerName, gameCode, markerId }: PlayerGameProps) 
           </div>
         </div>
       )}
-  
+
       <button
         onClick={toggleAimingMode}
         className={`text-sm absolute top-4 right-4 px-2 py-2 rounded-lg z-20 ${
@@ -214,37 +224,39 @@ export const PlayerGame = ({ playerName, gameCode, markerId }: PlayerGameProps) 
       >
         {isAiming ? "Exit Scanner" : "Activate Scanner"}
       </button>
-  
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10">
-        <Button
-          onClick={handleShoot}
-          disabled={reloading || !currentTarget || !isScannerReady}
-          className={`w-20 h-20 rounded-full border-4 shadow-lg transition-transform ${
-            reloading
-              ? "bg-gray-500 border-gray-300 shadow-gray-500/50"
-              : currentTarget && isScannerReady
+
+      {gameStarted && (
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10">
+          <Button
+            onClick={handleShoot}
+            disabled={reloading || !currentTarget || !isScannerReady}
+            className={`w-20 h-20 rounded-full border-4 shadow-lg transition-transform ${
+              reloading
+                ? "bg-gray-500 border-gray-300 shadow-gray-500/50"
+                : currentTarget && isScannerReady
                 ? "bg-red-500 border-red-300 shadow-red-500/50 hover:scale-105"
                 : "bg-orange-500 border-orange-300 shadow-orange-500/50"
-          }`}
-        >
-          <div className="text-center">
-            {reloading ? (
-              <div className="text-white text-xs font-bold animate-pulse">RELOADING</div>
-            ) : (
-              <>
-                <div className="w-3 h-3 bg-white rounded-full mx-auto mb-1"></div>
-                <div className="text-xs font-bold text-white">FIRE</div>
-              </>
-            )}
-          </div>
-        </Button>
-      </div>
-  
+            }`}
+          >
+            <div className="text-center">
+              {reloading ? (
+                <div className="text-white text-xs font-bold animate-pulse">RELOADING</div>
+              ) : (
+                <>
+                  <div className="w-3 h-3 bg-white rounded-full mx-auto mb-1"></div>
+                  <div className="text-xs font-bold text-white">FIRE</div>
+                </>
+              )}
+            </div>
+          </Button>
+        </div>
+      )}
+
       <div className="absolute bottom-4 left-4 bg-slate-800/80 p-2 rounded-lg text-xs text-slate-400">
         <p>Scanner: {isScannerReady ? "Ready" : "Loading"}</p>
         <p>Target: {currentTarget || "None"}</p>
         <p>Reloading: {reloading ? "Yes" : "No"}</p>
       </div>
     </div>
-  ); 
+  );
 };
