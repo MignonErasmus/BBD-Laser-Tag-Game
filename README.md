@@ -4,7 +4,7 @@
 
 You can view the live deployed version of this application here:
 
-👉 [BBD Laser Tag Game on Vercel](https://vercel.com/mignonerasmus-projects/bbd-laser-tag-game)
+👉 [BBD Laser Tag Game on Vercel](https://bbd-laser-tag-game.vercel.app/)
 
 ## How to Run the Frontend
 
