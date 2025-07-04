@@ -45,7 +45,12 @@ You can try the live version of the game here:
    cd socket-backend
    ```
 
-2. **Run the backend server:**
+2. **Install dependencies:**
+    ```bash
+    npm i
+    ```
+
+3. **Run the backend server:**
    ```bash
    node server.js
    ```

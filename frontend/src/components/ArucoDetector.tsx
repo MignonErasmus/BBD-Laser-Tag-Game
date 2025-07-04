@@ -34,7 +34,7 @@ export const ArucoDetector = ({
         try {
           detectorRef.current = new AR.Detector({
             dictionaryName: 'ARUCO'
-        }); // ← use default dictionary
+        }); 
           setIsLoaded(true);
           console.log("✅ Detector initialized (original dictionary)");
         } catch (err) {

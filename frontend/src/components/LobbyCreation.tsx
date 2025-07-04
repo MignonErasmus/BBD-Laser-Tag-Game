@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getSocket } from "@/socket"; // 👈 import the singleton
+import { getSocket } from "@/socket"; 
 
 interface LobbyCreationProps {
   onLobbyCreated: (code: string) => void;

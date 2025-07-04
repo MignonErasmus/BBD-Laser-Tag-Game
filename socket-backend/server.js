@@ -39,11 +39,6 @@ io.on("connection", (socket) => {
       socket.emit("players_update", game.players);
       console.log(`Watcher ${socket.id} joined game ${gameID}`);
 
-      // REMOVE THIS TEST ACTIVITY AFTER CONFIRMING REAL EVENTS WORK
-      // setTimeout(() => {
-      //   io.to(gameID).emit("player_action", "Test activity: Someone joined!");
-      // }, 5000);
-
     } else {
       socket.emit("error", "Game not found.");
       console.log(`Watcher ${socket.id} tried to watch non-existent game ${gameID}`);
@@ -133,7 +128,6 @@ io.on("connection", (socket) => {
       markerId: parsedMarkerId
     });
 
-    // --- ADDED PLAYER_ACTION FOR JOINING ---
     io.to(gameID).emit("player_action", `${assignedName} joined the game.`);
     console.log(`${assignedName} joined game ${gameID}. Players: ${game.players.length}`);
   });
@@ -162,7 +156,6 @@ io.on("connection", (socket) => {
     game.started = true;
     io.to(gameID).emit("game_started");
 
-    // --- ADDED PLAYER_ACTION FOR GAME START ---
     io.to(gameID).emit("player_action", "The game has started!");
     console.log(`Game ${gameID} started.`);
   });
@@ -328,22 +321,17 @@ io.on("connection", (socket) => {
         io.to(gameID).emit("player_action", `🔌 ${disconnectedPlayerName} disconnected.`);
         console.log(`🔌 ${disconnectedPlayerName} disconnected from game ${gameID}.`);
       
-        // new logic here
-        if (game.started) { // Only check for winner if the game was actively started
+        if (game.started) { 
           const alivePlayers = game.players.filter(p => p.lives > 0);
           if (alivePlayers.length === 1) {
               io.to(gameID).emit("player_action", `🏆 ${alivePlayers[0].name} wins the game due to player disconnections!`);
               console.log(`Game ${gameID} ended. ${alivePlayers[0].name} wins due to disconnections.`);
-              // Optionally, you might want to stop the game timer here or reset the game state.
-              // For now, we'll just emit the message.
           } else if (alivePlayers.length === 0 && game.players.length > 0) {
-              // Edge case: all players disconnected, or last player alive disconnected
               io.to(gameID).emit("player_action", `Game ended. All players disconnected.`);
               console.log(`Game ${gameID} ended. All players disconnected.`);
           } else if (game.players.length === 0) {
-              // Clean up game if no players left at all (optional)
               console.log(`Game ${gameID} is empty, could be removed.`);
-              delete games[gameID]; // Consider deleting the game if it's completely empty
+              delete games[gameID]; 
           }
       }
       }
