@@ -15,7 +15,7 @@ You can try the live version of the game here:
 - **Backend**: Node.js + Socket.IO
 - **Computer Vision**: ArUco marker detection using JavaScript
 - **Real-time Communication**: Socket.IO
-- **Deployment**: Vercel (frontend), local Node server (backend)
+- **Deployment**: Vercel (frontend), Railway (backend)
 
 ---
 
