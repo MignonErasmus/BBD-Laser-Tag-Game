@@ -46,9 +46,9 @@ You can try the live version of the game here:
    ```
 
 2. **Install dependencies:**
-```bash
-npm i
-```
+    ```bash
+    npm i
+    ```
 
 3. **Run the backend server:**
    ```bash
